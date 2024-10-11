@@ -17,6 +17,7 @@ trait PReservedString {
 }
 trait LeftSpace extends PReservedString { override def leftPad = " " }
 trait RightSpace extends PReservedString { override def rightPad = " " }
+trait LeftNewlineIndent extends PReservedString { override def leftPad = "\n  " }
 case class PReserved[+T <: PReservedString](rs: T)(val pos: (Position, Position)) extends PNode with PLeaf {
   override def display = rs.display
 }
@@ -159,11 +160,11 @@ object PKw {
 
   sealed trait Spec extends PReservedString; trait AnySpec extends PreSpec with PostSpec with InvSpec
   trait PreSpec extends Spec; trait PostSpec extends Spec; trait InvSpec extends Spec
-  case object Requires extends PKw("requires") with PKeywordLang with PreSpec
+  case object Requires extends PKw("requires") with PKeywordLang with PreSpec with LeftNewlineIndent
   type Requires = PReserved[Requires.type]
-  case object Ensures extends PKw("ensures") with PKeywordLang with PostSpec
+  case object Ensures extends PKw("ensures") with PKeywordLang with PostSpec with LeftNewlineIndent
   type Ensures = PReserved[Ensures.type]
-  case object Invariant extends PKw("invariant") with PKeywordLang with InvSpec
+  case object Invariant extends PKw("invariant") with PKeywordLang with InvSpec with LeftNewlineIndent
   type Invariant = PReserved[Invariant.type]
 
   case object Result extends PKw("result") with PKeywordLang with PKeywordAtom {

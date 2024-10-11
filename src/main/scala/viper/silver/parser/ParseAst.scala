@@ -34,6 +34,10 @@ trait PNode extends Where with Product with Rewritable with HasExtraValList {
 
   /* Should output something that can be displayed to the user. */
   def pretty: String
+  /* Should output the node, but reformatted. Similar to `pretty`, but it contains
+     some adaptations that are better for reformatting.
+   */
+  def reformat: String = pretty
 
   /** Returns a list of all direct sub-nodes of this node. */
   def subnodes: Seq[PNode] = PNode.children(this, this).flatMap(PNode.nodes(this, _)).toSeq
@@ -1651,7 +1655,7 @@ case class PProgram(imported: Seq[PProgram], members: Seq[PMember])(val pos: (Po
   }
 
   def reformatted = {
-    members.map(_.pretty).mkString("\n")
+    members.map(_.reformat).mkString("\n\n")
   }
 
   // Pretty print members in a specific order
