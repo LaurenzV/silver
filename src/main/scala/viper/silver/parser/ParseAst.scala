@@ -8,7 +8,7 @@ package viper.silver.parser
 
 import java.util.concurrent.atomic.{AtomicInteger, AtomicLong}
 import viper.silver.ast.utility.Visitor
-import viper.silver.ast.utility.rewriter.{Rewritable, StrategyBuilder, HasExtraVars, HasExtraValList}
+import viper.silver.ast.utility.rewriter.{HasExtraValList, HasExtraVars, Rewritable, StrategyBuilder}
 import viper.silver.ast.{Exp, FilePosition, HasLineColumn, Member, NoPosition, Position, SourcePosition, Stmt, Type}
 import viper.silver.parser.TypeHelper._
 import viper.silver.verifier.ParseReport
@@ -229,6 +229,28 @@ object TypeHelper {
 trait PIdentifier extends PLeaf {
   def name: String
   override def display = name
+}
+
+case class PBlockComment(content: String)(val pos: (Position, Position)) extends PNode with PMember with PLeaf {
+
+  override def declares: Seq[PGlobalDeclaration] = Seq()
+
+  override def annotations: Seq[PAnnotation] = Seq()
+
+  override def pretty: String = s"/* $content */"
+
+  override def display: String = content
+}
+
+case class PLineComment(content: String)(val pos: (Position, Position)) extends PNode with PMember with PLeaf {
+
+  override def declares: Seq[PGlobalDeclaration] = Seq()
+
+  override def annotations: Seq[PAnnotation] = Seq()
+
+  override def pretty: String = s"// $content"
+
+  override def display: String = content
 }
 
 case class PIdnDef(name: String)(val pos: (Position, Position)) extends PNode with PIdentifier
@@ -1627,6 +1649,11 @@ case class PProgram(imported: Seq[PProgram], members: Seq[PMember])(val pos: (Po
     val i = imported.map(_.pretty).mkString("\n")
     prefix + m + "\n\n" + i
   }
+
+  def reformatted = {
+    members.map(_.pretty).mkString("\n")
+  }
+
   // Pretty print members in a specific order
   def prettyOrdered: String = {
     val all = Seq(imports, macros, domains, fields, functions, predicates, methods, extensions).filter(_.length > 0)
