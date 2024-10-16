@@ -854,7 +854,7 @@ class FastParser {
     P(programMember.rep map (members => {
       val warnings = _warnings
       _warnings = Seq()
-      PProgram(Nil, members)(_, warnings)
+      PProgram(Nil, members, Nil)(_, warnings)
     })).pos
 
   def preambleImport[$: P]: P[PKw.Import => PAnnotationsPosition => PImport] = P(
@@ -969,8 +969,12 @@ class FastParser {
       offset += line_length
     }
 
-    val comments = fastparse.parse(s, programComments(_));
-    println(comments);
+    val comments = fastparse.parse(s, programComments(_)) match {
+      case Parsed.Success(value, _) => value
+      case _: Parsed.Failure => Seq()
+    }
+
+//    println("Result: " + comments);
 
     ////
     // Parsing
@@ -978,7 +982,12 @@ class FastParser {
 
     // Assume entire file is correct and try parsing it quickly
     fastparse.parse(s, entireProgram(_)) match {
-      case Parsed.Success(value, _) => return value
+      case Parsed.Success(value, _) => {
+        println(s"before: ${comments.length}");
+        value.comments = comments;
+        println("after");
+        return value;
+      }
       case _: Parsed.Failure =>
     }
     // There was a parsing error, parse member by member to get all errors
@@ -1026,7 +1035,7 @@ class FastParser {
     val warnings = _warnings
     _warnings = Nil
     val pos = (FilePosition(lineCol.getPos(0)), FilePosition(lineCol.getPos(res.get.index)))
-    PProgram(Nil, members)(pos, errors ++ warnings)
+    PProgram(Nil, members, Seq())(pos, errors ++ warnings);
   }
 
   object ParserExtension extends ParserPluginTemplate {

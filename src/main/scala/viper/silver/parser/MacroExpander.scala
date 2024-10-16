@@ -156,9 +156,9 @@ object MacroExpander {
                 pos._1
             }
           }
-          return PProgram(newImported, program.members)(program.pos, program.localErrors ++ reports :+ ParseError(msg, location))
+          return PProgram(newImported, program.members, program.comments)(program.pos, program.localErrors ++ reports :+ ParseError(msg, location))
       }
-      PProgram(newImported, newMembers)(program.pos, program.localErrors ++ reports)
+      PProgram(newImported, newMembers, program.comments)(program.pos, program.localErrors ++ reports)
     }
 
     doExpandDefinesAll(p, reports)
