@@ -938,9 +938,15 @@ class FastParser {
 
   def methodReturns[$: P]: P[PMethodReturns] = P((P(PKw.Returns) ~ argList(idnTypeBinding.map(PFormalReturnDecl(_)))) map (PMethodReturns.apply _).tupled).pos
 
-  def lineComment[$: P]: P[PComment] = (P(("//" ~~ CharsWhile(_ != '\n').?.! ~~ ("\n" | End)) map PComment.apply).pos)
+  def lineComment[$: P]: P[PComment] = {
+    P(("//" ~~ CharsWhile(_ != '\n').?.! ~~ ("\n" | End)).map { content =>
+      (pos: (FilePosition, FilePosition)) => PComment(content, false)(pos)
+    }).pos
+  }
 
-  def blockComment[$: P]: P[PComment] = (P(("/*" ~~ (!StringIn("*/") ~~ AnyChar).repX.! ~~ "*/") map PComment.apply).pos)
+  def blockComment[$: P]: P[PComment] = P(("/*" ~~ (!StringIn("*/") ~~ AnyChar).repX.! ~~ "*/").map { content =>
+    (pos: (FilePosition, FilePosition)) => PComment(content, true)(pos)
+  }).pos
 
   def comment[$: P]: P[PComment] = lineComment | blockComment
 
