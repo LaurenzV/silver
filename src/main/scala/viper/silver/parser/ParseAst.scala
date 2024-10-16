@@ -235,27 +235,7 @@ trait PIdentifier extends PLeaf {
   override def display = name
 }
 
-case class PBlockComment(content: String)(val pos: (Position, Position)) extends PNode with PMember with PLeaf {
-
-  override def declares: Seq[PGlobalDeclaration] = Seq()
-
-  override def annotations: Seq[PAnnotation] = Seq()
-
-  override def pretty: String = s"/* $content */"
-
-  override def display: String = content
-}
-
-case class PLineComment(content: String)(val pos: (Position, Position)) extends PNode with PMember with PLeaf {
-
-  override def declares: Seq[PGlobalDeclaration] = Seq()
-
-  override def annotations: Seq[PAnnotation] = Seq()
-
-  override def pretty: String = s"// $content"
-
-  override def display: String = content
-}
+case class PComment(content: String, block: Boolean)(val pos: (FilePosition, FilePosition)) {}
 
 case class PIdnDef(name: String)(val pos: (Position, Position)) extends PNode with PIdentifier
 
