@@ -938,6 +938,16 @@ class FastParser {
 
   def methodReturns[$: P]: P[PMethodReturns] = P((P(PKw.Returns) ~ argList(idnTypeBinding.map(PFormalReturnDecl(_)))) map (PMethodReturns.apply _).tupled).pos
 
+  def lineComment[$: P]: P[PComment] = (P(("//" ~~ CharsWhile(_ != '\n').?.! ~~ ("\n" | End)) map PComment.apply).pos)
+
+  def blockComment[$: P]: P[PComment] = (P(("/*" ~~ (!StringIn("*/") ~~ AnyChar).repX.! ~~ "*/") map PComment.apply).pos)
+
+  def comment[$: P]: P[PComment] = lineComment | blockComment
+
+  def programComments[$: P]: P[Seq[PComment]] = {
+    P((!StringIn("/") ~~ AnyChar).repX ~~ comment).repX
+  }
+
   def entireProgram[$: P]: P[PProgram] = P(Start ~ programDecl ~ End)
 
   def end[$: P]: P[Unit] = Pass ~ End
@@ -958,6 +968,9 @@ class FastParser {
       _line_offset(i) = offset
       offset += line_length
     }
+
+    val comments = fastparse.parse(s, programComments(_));
+    println(comments);
 
     ////
     // Parsing

@@ -235,7 +235,7 @@ trait PIdentifier extends PLeaf {
   override def display = name
 }
 
-case class PComment(content: String, block: Boolean)(val pos: (FilePosition, FilePosition)) {}
+case class PComment(content: String)(val pos: (FilePosition, FilePosition)) {}
 
 case class PIdnDef(name: String)(val pos: (Position, Position)) extends PNode with PIdentifier
 
