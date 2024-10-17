@@ -30,14 +30,12 @@ trait Where {
   * The root of the parser abstract syntax tree.  Note that we prefix all nodes with `P` to avoid confusion
   * with the actual Viper abstract syntax tree.
   */
-trait PNode extends Where with Product with Rewritable with HasExtraValList {
+trait PNode extends Where with Product with Rewritable with HasExtraValList with Reformattable {
 
   /* Should output something that can be displayed to the user. */
   def pretty: String
-  /* Should output the node, but reformatted. Similar to `pretty`, but it contains
-     some adaptations that are better for reformatting.
-   */
-  def reformat: String = pretty
+
+  override def reformat = pretty
 
   /** Returns a list of all direct sub-nodes of this node. */
   def subnodes: Seq[PNode] = PNode.children(this, this).flatMap(PNode.nodes(this, _)).toSeq
@@ -130,6 +128,10 @@ trait PNode extends Where with Product with Rewritable with HasExtraValList {
   }
 
   override def getExtraVals: Seq[Any] = Seq(pos)
+}
+
+trait Reformattable {
+  def reformat: String
 }
 
 /** Marks that this class contains no PNodes and thus should not be traversed deeper. */
@@ -235,8 +237,12 @@ trait PIdentifier extends PLeaf {
   override def display = name
 }
 
-case class PComment(content: String, block: Boolean)(val pos: (FilePosition, FilePosition)) extends PLeaf {
-  override def display: String = "test"
+case class PComment(content: String, block: Boolean)(val pos: (FilePosition, FilePosition)) extends PLeaf with Reformattable {
+  override def display: String = if (block) {
+    s"/*$content*/"
+  } else  {
+    s"//$content"
+  }
 }
 
 case class PIdnDef(name: String)(val pos: (Position, Position)) extends PNode with PIdentifier

@@ -989,9 +989,7 @@ class FastParser {
     // Assume entire file is correct and try parsing it quickly
     fastparse.parse(s, entireProgram(_)) match {
       case Parsed.Success(value, _) => {
-        println(s"before: ${comments.length}");
         value.comments = comments;
-        println("after");
         return value;
       }
       case _: Parsed.Failure =>
