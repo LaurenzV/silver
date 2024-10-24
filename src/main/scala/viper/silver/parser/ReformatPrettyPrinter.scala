@@ -41,8 +41,8 @@ object ReformatPrettyPrinter extends FastPrettyPrinterBase {
             text(keyword.token) <+> text(idndef.name) <> show(args) <>
             returns.map(a => nil <+> show(a)).getOrElse(nil)
           ) <>
-        nest(defaultIndent, if (pres.isEmpty) nil
-                            else line <> show(pres) <>
+        nest(defaultIndent, (if (pres.isEmpty) nil
+                            else line <> show(pres)) <>
                               (if (posts.isEmpty) nil
                               else line <> show(posts)
                                 )
