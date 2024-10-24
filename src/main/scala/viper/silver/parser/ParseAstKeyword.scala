@@ -20,6 +20,7 @@ trait RightSpace extends PReservedString { override def rightPad = " " }
 trait LeftNewlineIndent extends PReservedString { override def leftPad = "\n  " }
 case class PReserved[+T <: PReservedString](rs: T)(val pos: (Position, Position)) extends PNode with PLeaf {
   override def display = rs.display
+  def token = rs.token
 }
 object PReserved {
   def implied[T <: PReservedString](rs: T): PReserved[T] = PReserved(rs)(NoPosition, NoPosition)
