@@ -12,38 +12,62 @@ object ReformatPrettyPrinter extends FastPrettyPrinterBase {
     super.pretty(defaultWidth, show(n))
   }
 
-  def show(n: Reformattable): Cont = {
+  def show(n: Option[Reformattable]): Cont = {
     n match {
+      case Some(r) => show(r)
+      case None => nil
+    }
+  }
+
+  def show(n: AnyRef): Cont = {
+    n match {
+      case None => nil
       case p@PProgram(_, _, _) => {
         println(p)
         val elements = (p.comments ++ p.members).sortBy(el => el.pos match {
           case (slc: FilePosition, _) => (slc.line, slc.column)
           case _ => (0, 0)
         });
-        elements.map(show).foldLeft(nil)(_ <> linebreak <> linebreak <> _)
+        elements.map(show).foldLeft(nil)((acc, n) => if (acc == nil) n else acc <> linebreak <> linebreak <> n)
       }
       case PMethod(annotations, keyword, idndef, args, returns, pres, posts, body) => {
-        var cont = nil
-        cont = cont <> annotations.map(show).foldLeft(nil)(_ <> linebreak <> _)
-        cont = cont <+> text(keyword.token) <+> text(idndef.name) <> show(args)
-        cont = cont <> returns.map(show).getOrElse(nil)
-        cont
+        println(s"args ${args}");
+        println(s"returns ${returns}");
+        println(s"pres ${pres}");
+        println(s"posts ${posts}");
+        (if (annotations.isEmpty) {nil} else {
+          annotations.map(show).foldLeft(nil)((acc, n) => if (acc == nil) n else acc <> linebreak <> n) <+> nil
+        }) <> group(
+            text(keyword.token) <+> text(idndef.name) <> show(args) <>
+            returns.map(a => nil <+> show(a)).getOrElse(nil)
+          ) <>
+        nest(defaultIndent, if (pres.isEmpty) nil
+                            else line <> show(pres) <>
+                              (if (posts.isEmpty) nil
+                              else line <> show(posts)
+                                )
+        )
       }
       case p: PGrouped[Brace, Reformattable] if p.l.isInstanceOf[Brace] => {
         show(p.l) <> line <> nest(defaultIndent, show(p.inner)) <> line <> show(p.r)
       }
-      case p@PGrouped(left, inner: Reformattable, right)  => {
+      case PGrouped(left, inner: Reformattable, right)  => {
         show(left) <> show(inner) <> show(right)
       }
       case p: PDelimited[Reformattable, Reformattable] => {
-        println(s"delimited: ${p}");
-        p.first.map(show).getOrElse(nil) <> p.inner.foldLeft(nil)((a, b) => a <> show(b._1) <> show(b._2)) <> p.end.map(show).getOrElse(nil)
+        p.first.map(show).getOrElse(nil) <>
+          p.inner.foldLeft(nil)((a, b) => a <> show(b._1) <> show(b._2)) <>
+          p.end.map(show).getOrElse(nil)
       }
-      case p: PMethodReturns => nil <+> show(p.k) <+> show(p.formalReturns)
+      case p: PMethodReturns => show(p.k) <+> show(p.formalReturns)
+      case p: PSpecification[_] => show(p.k) <+> show(p.e)
+      case p: PBinExp => show(p.left) <+> show(p.op) <+> show(p.right)
       case p: PReserved[_] => p.token
       case p: PIdnDef => p.name
       case l: List[Reformattable] => l.map(show).reduce(_ <> _)
-      case _ => text(n.reformat)
+      // This should in theory never be called
+      case n: Reformattable => text(n.reformat)
+      case u => throw new IllegalArgumentException(s"attemted to format non-formattable type ${u}")
     }
   }
 }
