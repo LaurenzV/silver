@@ -6,7 +6,7 @@ import viper.silver.parser.PSym.{Brace, LBrace, LParen, RBrace}
 import viper.silver.parser.PSymOp.RParen
 
 object ReformatPrettyPrinter extends FastPrettyPrinterBase {
-  override val defaultIndent = 2
+  override val defaultIndent = 4
 
   def reformat(n: Reformattable): String = {
     super.pretty(defaultWidth, show(n))
@@ -28,15 +28,17 @@ object ReformatPrettyPrinter extends FastPrettyPrinterBase {
           case (slc: FilePosition, _) => (slc.line, slc.column)
           case _ => (0, 0)
         });
-        elements.map(show).foldLeft(nil)((acc, n) => if (acc == nil) n else acc <> linebreak <> linebreak <> n)
+        elements.map(show).foldLeft(nil)((acc, n) => acc <@@> n)
       }
       case PMethod(annotations, keyword, idndef, args, returns, pres, posts, body) => {
+        println(s"PMethod");
+        println(s"---------------------------");
         println(s"args ${args}");
         println(s"returns ${returns}");
         println(s"pres ${pres}");
         println(s"posts ${posts}");
         (if (annotations.isEmpty) {nil} else {
-          annotations.map(show).foldLeft(nil)((acc, n) => if (acc == nil) n else acc <> linebreak <> n) <+> nil
+          annotations.map(show).foldLeft(nil)((acc, n) => acc <@@> n) <+> nil
         }) <> group(
             text(keyword.token) <+> text(idndef.name) <> show(args) <>
             returns.map(a => nil <+> show(a)).getOrElse(nil)
@@ -55,8 +57,14 @@ object ReformatPrettyPrinter extends FastPrettyPrinterBase {
         show(left) <> show(inner) <> show(right)
       }
       case p: PDelimited[Reformattable, Reformattable] => {
-        p.first.map(show).getOrElse(nil) <>
-          p.inner.foldLeft(nil)((a, b) => a <> show(b._1) <> show(b._2)) <>
+        println(s"PDelimited");
+        println(s"---------------------------");
+        println(s"first: ${p.first}");
+        println(s"inner: ${p.inner}");
+        println(s"end: ${p.end}");
+
+        p.first.map(show).getOrElse(nil) <@>
+          p.inner.foldLeft(nil)((acc, b) => acc <@> show(b._1) <@> show(b._2)) <>
           p.end.map(show).getOrElse(nil)
       }
       case p: PMethodReturns => show(p.k) <+> show(p.formalReturns)
