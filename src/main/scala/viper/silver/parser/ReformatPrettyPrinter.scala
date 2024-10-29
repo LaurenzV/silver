@@ -50,6 +50,15 @@ object ReformatPrettyPrinter extends FastPrettyPrinterBase {
                                 )
         )
       }
+      case PFields(annotation, field, fields, s) => {
+        println(s"PFields");
+        println(s"---------------------------");
+        println(s"annotation: ${annotation}");
+        println(s"field: ${field}");
+        println(s"fields: ${fields}");
+        println(s"s: ${s}");
+        show(field) <+> show(fields) <> show(s)
+      }
       case p: PGrouped[Brace, Reformattable] if p.l.isInstanceOf[Brace] => {
         show(p.l) <> line <> nest(defaultIndent, show(p.inner)) <> line <> show(p.r)
       }
@@ -68,8 +77,11 @@ object ReformatPrettyPrinter extends FastPrettyPrinterBase {
           p.end.map(show).getOrElse(nil)
       }
       case p: PMethodReturns => show(p.k) <+> show(p.formalReturns)
+      case p: PReserved[_] => text(p.token)
       case p: PSpecification[_] => show(p.k) <+> show(p.e)
       case p: PBinExp => show(p.left) <+> show(p.op) <+> show(p.right)
+      case p: PFieldDecl => show(p.idndef) <> show(p.c) <+> show(p.typ)
+      case p: PSym => text(p.symbol)
       case p: PReserved[_] => p.token
       case p: PIdnDef => p.name
       case l: List[Reformattable] => l.map(show).reduce(_ <> _)
