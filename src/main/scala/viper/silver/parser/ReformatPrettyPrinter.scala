@@ -12,7 +12,7 @@ object ReformatPrettyPrinter extends FastPrettyPrinterBase {
     super.pretty(defaultWidth, show(n))
   }
 
-  def show(n: Option[Reformattable]): Cont = {
+  def show_option(n: Option[AnyRef]): Cont = {
     n match {
       case Some(r) => show(r)
       case None => nil
@@ -21,7 +21,7 @@ object ReformatPrettyPrinter extends FastPrettyPrinterBase {
 
   def show(n: AnyRef): Cont = {
     n match {
-      case None => nil
+      case p: Option[AnyRef] => show_option(p)
       case p@PProgram(_, _, _) => {
         println(p)
         val elements = (p.comments ++ p.members).sortBy(el => el.pos match {
@@ -37,6 +37,7 @@ object ReformatPrettyPrinter extends FastPrettyPrinterBase {
         println(s"returns ${returns}");
         println(s"pres ${pres}");
         println(s"posts ${posts}");
+        println(s"body ${body}");
         (if (annotations.isEmpty) {nil} else {
           annotations.map(show).foldLeft(nil)((acc, n) => acc <@@> n) <+> nil
         }) <> group(
@@ -48,7 +49,14 @@ object ReformatPrettyPrinter extends FastPrettyPrinterBase {
                               (if (posts.isEmpty) nil
                               else line <> show(posts)
                                 )
-        )
+        ) <> (if (pres.isEmpty && posts.isEmpty) {
+          // If not pre- or post conditions exist, the starting brace should be on the same line and
+          // just separated by a space.
+          nil <+> show(body)
+        } else {
+          // Otherwise, show on a new line.
+          nil <> linebreak <> show(body)
+        })
       }
       case PFields(annotation, field, fields, s) => {
         println(s"PFields");
@@ -59,12 +67,23 @@ object ReformatPrettyPrinter extends FastPrettyPrinterBase {
         println(s"s: ${s}");
         show(field) <+> show(fields) <> show(s)
       }
-      case p: PGrouped[Brace, Reformattable] if p.l.isInstanceOf[Brace] => {
+      case p: PGrouped[Brace, Reformattable] if p.l.rs.isInstanceOf[Brace] => {
+        println(s"PGrouped with brace");
+        println(s"left: ${p.l}");
+        println(s"inner: ${p.inner}");
+        println(s"right: ${p.r}");
+        println(s"---------------------------");
         show(p.l) <> line <> nest(defaultIndent, show(p.inner)) <> line <> show(p.r)
       }
       case PGrouped(left, inner: Reformattable, right)  => {
-        show(left) <> show(inner) <> show(right)
+        println(s"PGrouped without brace");
+        println(s"left: ${left}");
+        println(s"inner: ${inner}");
+        println(s"right: ${right}");
+        println(s"---------------------------");
+        show(left) <> nest(defaultIndent, show(inner)) <> show(right)
       }
+      case p: PSeqn => show(p.ss)
       case p: PDelimited[Reformattable, Reformattable] => {
         println(s"PDelimited");
         println(s"---------------------------");
@@ -76,6 +95,7 @@ object ReformatPrettyPrinter extends FastPrettyPrinterBase {
           p.inner.foldLeft(nil)((acc, b) => acc <@> show(b._1) <@> show(b._2)) <>
           p.end.map(show).getOrElse(nil)
       }
+      case p: PVars => show(p.keyword) <+> show(p.vars) <> p.init.map(s => nil <+> show(s._1) <+> show(s._2)).getOrElse(nil)
       case p: PMethodReturns => show(p.k) <+> show(p.formalReturns)
       case p: PReserved[_] => text(p.token)
       case p: PSpecification[_] => show(p.k) <+> show(p.e)
