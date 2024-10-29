@@ -71,9 +71,15 @@ object ReformatPrettyPrinter extends FastPrettyPrinterBase {
         println(s"PGrouped with brace");
         println(s"left: ${p.l}");
         println(s"inner: ${p.inner}");
+        println(s"inner shown: ${show(p.inner)}");
         println(s"right: ${p.r}");
         println(s"---------------------------");
-        show(p.l) <> line <> nest(defaultIndent, show(p.inner)) <> line <> show(p.r)
+        val inner = show(p.inner);
+        if (inner == nil) {
+          show(p.l) <> show(p.r)
+        } else {
+          show(p.l) <> nest(defaultIndent, line <> inner) <> line <> show(p.r)
+        }
       }
       case PGrouped(left, inner: Reformattable, right)  => {
         println(s"PGrouped without brace");
