@@ -69,12 +69,13 @@ object ReformatPrettyPrinter extends FastPrettyPrinterBase {
       }
       case p: PGrouped[Brace, Reformattable] if p.l.rs.isInstanceOf[Brace] => {
         println(s"PGrouped with brace");
+
+        println(s"---------------------------");
         println(s"left: ${p.l}");
         println(s"inner: ${p.inner}");
-        println(s"inner shown: ${show(p.inner)}");
         println(s"right: ${p.r}");
-        println(s"---------------------------");
         val inner = show(p.inner);
+        println(s"is nil? ${inner == nil}");
         if (inner == nil) {
           show(p.l) <> show(p.r)
         } else {
@@ -98,7 +99,7 @@ object ReformatPrettyPrinter extends FastPrettyPrinterBase {
         println(s"end: ${p.end}");
 
         p.first.map(show).getOrElse(nil) <@>
-          p.inner.foldLeft(nil)((acc, b) => acc <@> show(b._1) <@> show(b._2)) <>
+          p.inner.foldLeft(nil)((acc, b) => acc <@> show(b._1) <@> show(b._2)) <@>
           p.end.map(show).getOrElse(nil)
       }
       case p: PVars => show(p.keyword) <+> show(p.vars) <> p.init.map(s => nil <+> show(s._1) <+> show(s._2)).getOrElse(nil)
