@@ -121,6 +121,7 @@ class TestPluginAddPredicate extends SilverPlugin {
     PProgram(
       input.imported,
       input.members :+ PPredicate(Seq(), PReserved.implied(PKw.Predicate), PIdnDef("testPredicate")(p), PGrouped.impliedParen(PDelimited.empty), None)(p),
+      Seq()
     )(input.pos, input.localErrors)
   }
 
