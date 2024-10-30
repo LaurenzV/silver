@@ -31,6 +31,7 @@ object ReformatPrettyPrinter extends FastPrettyPrinterBase {
         elements.map(show).foldLeft(nil)((acc, n) => acc <@@> n)
       }
       case PMethod(annotations, keyword, idndef, args, returns, pres, posts, body) => {
+        // TODO: Add annotations
         println(s"PMethod");
         println(s"---------------------------");
         println(s"args ${args}");
@@ -122,6 +123,13 @@ object ReformatPrettyPrinter extends FastPrettyPrinterBase {
       case p: PLocalVarDecl => show(p.idndef) <> show(p.c) <+> show(p.typ)
       case l: List[Reformattable] => l.map(show).reduce(_ <> _)
       // This should in theory never be called
+//      case n: Reformattable => text(n.reformat)
+      case p: PComment => text(p.display)
+      // TODO: Support annotations
+      case p: PImport => show(p.imprt) <+> show(p.file)
+      case p: PStringLiteral => show(p.grouped)
+      case p: PRawString => text(p.str)
+      caes p: PFunction
       case n: Reformattable => text(n.reformat)
       case u => throw new IllegalArgumentException(s"attemted to format non-formattable type ${u}")
     }
