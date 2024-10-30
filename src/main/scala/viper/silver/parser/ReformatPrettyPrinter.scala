@@ -12,16 +12,43 @@ object ReformatPrettyPrinter extends FastPrettyPrinterBase {
     super.pretty(defaultWidth, show(n))
   }
 
-  def show_option(n: Option[AnyRef]): Cont = {
+  def showOption(n: Option[AnyRef]): Cont = {
     n match {
       case Some(r) => show(r)
       case None => nil
     }
   }
 
+  def showAnnotations(annotations: Seq[PAnnotation]): Cont = {
+    if (annotations.isEmpty) {nil} else {
+      annotations.map(show).foldLeft(nil)((acc, n) => acc <@@> n) <+> nil
+    }
+  }
+
+  def showReturns(returns: Option[PMethodReturns]): Cont = {
+    returns.map(a => nil <+> show(a)).getOrElse(nil)
+  }
+
+  def showPresPosts(pres: PDelimited[_, _], posts: PDelimited[_, _]): Cont = {
+    nest(defaultIndent, (if (pres.isEmpty) nil
+    else line <> show(pres)) <>
+      (if (posts.isEmpty) nil
+      else line <> show(posts)
+        )
+    )
+  }
+
+  def showBody(body: Cont, newline: Boolean): Cont = {
+    if (newline) {
+      linebreak <> body
+    } else {
+      nil <+> body
+    }
+  }
+
   def show(n: AnyRef): Cont = {
     n match {
-      case p: Option[AnyRef] => show_option(p)
+      case p: Option[AnyRef] => showOption(p)
       case p@PProgram(_, _, _) => {
         println(p)
         val elements = (p.comments ++ p.members).sortBy(el => el.pos match {
@@ -31,7 +58,7 @@ object ReformatPrettyPrinter extends FastPrettyPrinterBase {
         elements.map(show).foldLeft(nil)((acc, n) => acc <@@> n)
       }
       case PMethod(annotations, keyword, idndef, args, returns, pres, posts, body) => {
-        // TODO: Add annotations
+        // TODO: Test annotations
         println(s"PMethod");
         println(s"---------------------------");
         println(s"args ${args}");
@@ -39,25 +66,8 @@ object ReformatPrettyPrinter extends FastPrettyPrinterBase {
         println(s"pres ${pres}");
         println(s"posts ${posts}");
         println(s"body ${body}");
-        (if (annotations.isEmpty) {nil} else {
-          annotations.map(show).foldLeft(nil)((acc, n) => acc <@@> n) <+> nil
-        }) <> group(
-            text(keyword.token) <+> text(idndef.name) <> show(args) <>
-            returns.map(a => nil <+> show(a)).getOrElse(nil)
-          ) <>
-        nest(defaultIndent, (if (pres.isEmpty) nil
-                            else line <> show(pres)) <>
-                              (if (posts.isEmpty) nil
-                              else line <> show(posts)
-                                )
-        ) <> (if (pres.isEmpty && posts.isEmpty) {
-          // If not pre- or post conditions exist, the starting brace should be on the same line and
-          // just separated by a space.
-          nil <+> show(body)
-        } else {
-          // Otherwise, show on a new line.
-          nil <> linebreak <> show(body)
-        })
+        showAnnotations(annotations) <> group(text(keyword.token) <+> text(idndef.name) <> show(args) <> showReturns(returns)) <>
+        showPresPosts(pres, posts) <> showBody(show(body), !(pres.isEmpty && posts.isEmpty))
       }
       case PFields(annotation, field, fields, s) => {
         println(s"PFields");
@@ -129,7 +139,6 @@ object ReformatPrettyPrinter extends FastPrettyPrinterBase {
       case p: PImport => show(p.imprt) <+> show(p.file)
       case p: PStringLiteral => show(p.grouped)
       case p: PRawString => text(p.str)
-      caes p: PFunction
       case n: Reformattable => text(n.reformat)
       case u => throw new IllegalArgumentException(s"attemted to format non-formattable type ${u}")
     }
