@@ -49,7 +49,7 @@ object ReformatPrettyPrinter extends FastPrettyPrinterBase {
   def show(n: AnyRef): Cont = {
     n match {
       case p: Option[AnyRef] => showOption(p)
-      case p@PProgram(_, _, _) => {
+      case p: PProgram => {
         println(p)
         val elements = (p.comments ++ p.members).sortBy(el => el.pos match {
           case (slc: FilePosition, _) => (slc.line, slc.column)
@@ -133,7 +133,6 @@ object ReformatPrettyPrinter extends FastPrettyPrinterBase {
       case p: PLocalVarDecl => show(p.idndef) <> show(p.c) <+> show(p.typ)
       case l: List[Reformattable] => l.map(show).reduce(_ <> _)
       // This should in theory never be called
-//      case n: Reformattable => text(n.reformat)
       case p: PComment => text(p.display)
       // TODO: Support annotations
       case p: PImport => show(p.imprt) <+> show(p.file)
