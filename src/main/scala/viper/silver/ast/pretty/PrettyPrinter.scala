@@ -379,6 +379,9 @@ trait FastPrettyPrinterBase extends PrettyPrintPrimitives {
 
     def <@@> (dr: Cont) : Cont =
       if (dl == nil) dr else if (dr == nil) dl else dl <> linebreak <> dr
+
+    def <@@@> (dr: Cont) : Cont =
+      if (dl == nil) dr else if (dr == nil) dl else dl <> space <> dr
   }
 
   def line: Cont = line(" ")

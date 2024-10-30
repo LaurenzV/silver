@@ -98,8 +98,16 @@ object ReformatPrettyPrinter extends FastPrettyPrinterBase {
         println(s"inner: ${p.inner}");
         println(s"end: ${p.end}");
 
-        p.first.map(show).getOrElse(nil) <@>
-          p.inner.foldLeft(nil)((acc, b) => acc <@> show(b._1) <@> show(b._2)) <@>
+        val separator = if (p.first.isInstanceOf[Option[PSpecification[_]]]) {
+          line
+        } else if (p.first.isInstanceOf[Option[PFormalArgDecl]]) {
+          space
+        } else {
+          nil
+        }
+
+        p.first.map(show).getOrElse(nil) <>
+          p.inner.foldLeft(nil)((acc, b) => acc <> show(b._1) <> separator <> show(b._2)) <>
           p.end.map(show).getOrElse(nil)
       }
       case p: PVars => show(p.keyword) <+> show(p.vars) <> p.init.map(s => nil <+> show(s._1) <+> show(s._2)).getOrElse(nil)
@@ -111,6 +119,7 @@ object ReformatPrettyPrinter extends FastPrettyPrinterBase {
       case p: PSym => text(p.symbol)
       case p: PReserved[_] => p.token
       case p: PIdnDef => p.name
+      case p: PLocalVarDecl => show(p.idndef) <> show(p.c) <+> show(p.typ)
       case l: List[Reformattable] => l.map(show).reduce(_ <> _)
       // This should in theory never be called
       case n: Reformattable => text(n.reformat)
