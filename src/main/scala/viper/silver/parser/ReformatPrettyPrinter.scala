@@ -1,9 +1,8 @@
 package viper.silver.parser
 
 import viper.silver.ast.FilePosition
-import viper.silver.ast.pretty.{Call, FastPrettyPrinterBase}
-import viper.silver.parser.PSym.{Brace, LBrace, LParen, RBrace}
-import viper.silver.parser.PSymOp.RParen
+import viper.silver.ast.pretty.FastPrettyPrinterBase
+import viper.silver.parser.PSym.Brace
 
 object ReformatPrettyPrinter extends FastPrettyPrinterBase {
   override val defaultIndent = 4
@@ -57,17 +56,23 @@ object ReformatPrettyPrinter extends FastPrettyPrinterBase {
         });
         elements.map(show).foldLeft(nil)((acc, n) => acc <@@> n)
       }
-      case PMethod(annotations, keyword, idndef, args, returns, pres, posts, body) => {
+      case p: PMethod => {
         // TODO: Test annotations
         println(s"PMethod");
         println(s"---------------------------");
-        println(s"args ${args}");
-        println(s"returns ${returns}");
-        println(s"pres ${pres}");
-        println(s"posts ${posts}");
-        println(s"body ${body}");
-        showAnnotations(annotations) <> group(text(keyword.token) <+> text(idndef.name) <> show(args) <> showReturns(returns)) <>
-        showPresPosts(pres, posts) <> showBody(show(body), !(pres.isEmpty && posts.isEmpty))
+        println(s"args ${p.args}");
+        println(s"returns ${p.returns}");
+        println(s"pres ${p.pres}");
+        println(s"posts ${p.posts}");
+        println(s"body ${p.body}");
+        showAnnotations(p.annotations) <> text(p.keyword.token) <+> text(p.idndef.name) <> show(p.args) <> showReturns(p.returns) <>
+        showPresPosts(p.pres, p.posts) <> showBody(show(p.body), !(p.pres.isEmpty && p.posts.isEmpty))
+      }
+      case p: PFunction => {
+        // TODO: Add PFunctioNType
+        showAnnotations(p.annotations) <@> show(p.keyword) <+> show(p.idndef) <+>
+          show(p.args) <+> show(p.c) <+> show(p.resultType) <>
+          showPresPosts(p.pres, p.posts) <> showBody(show(p.body), !(p.pres.isEmpty && p.posts.isEmpty))
       }
       case PFields(annotation, field, fields, s) => {
         println(s"PFields");
@@ -128,11 +133,9 @@ object ReformatPrettyPrinter extends FastPrettyPrinterBase {
       case p: PBinExp => show(p.left) <+> show(p.op) <+> show(p.right)
       case p: PFieldDecl => show(p.idndef) <> show(p.c) <+> show(p.typ)
       case p: PSym => text(p.symbol)
-      case p: PReserved[_] => p.token
       case p: PIdnDef => p.name
       case p: PLocalVarDecl => show(p.idndef) <> show(p.c) <+> show(p.typ)
       case l: List[Reformattable] => l.map(show).reduce(_ <> _)
-      // This should in theory never be called
       case p: PComment => text(p.display)
       // TODO: Support annotations
       case p: PImport => show(p.imprt) <+> show(p.file)
