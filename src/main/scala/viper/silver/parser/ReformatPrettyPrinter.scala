@@ -106,8 +106,8 @@ object ReformatPrettyPrinter extends FastPrettyPrinterBase {
           nil
         }
 
-        p.first.map(show).getOrElse(nil) <>
-          p.inner.foldLeft(nil)((acc, b) => acc <> show(b._1) <> separator <> show(b._2)) <>
+        p.first.map(show).getOrElse(nil) <@@@>
+          p.inner.foldLeft(nil)((acc, b) => acc <@@@> show(b._1) <@@@> separator <@@@> show(b._2)) <@@@>
           p.end.map(show).getOrElse(nil)
       }
       case p: PVars => show(p.keyword) <+> show(p.vars) <> p.init.map(s => nil <+> show(s._1) <+> show(s._2)).getOrElse(nil)
