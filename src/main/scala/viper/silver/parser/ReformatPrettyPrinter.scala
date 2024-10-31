@@ -38,6 +38,10 @@ object ReformatPrettyPrinter extends FastPrettyPrinterBase {
     )
   }
 
+  def showInvs(invs: PDelimited[_, _]): Cont = {
+    nest(defaultIndent, (if (invs.isEmpty) nil else line <> show(invs)))
+  }
+
   def showBody(body: Cont, newline: Boolean): Cont = {
     if (newline) {
       linebreak <> body
@@ -164,6 +168,9 @@ object ReformatPrettyPrinter extends FastPrettyPrinterBase {
       case l: List[Reformattable] => l.map(show).reduce(_ <> _)
       case p: PComment => text(p.display)
       case p: PKw => text(p.keyword)
+      case p: PWhile => {
+        show(p.keyword) <> show(p.cond) <+> showInvs(p.invs) <> showBody(show(p.body), !p.invs.isEmpty)
+      }
       // TODO: Support annotations
       case p: PImport => show(p.imprt) <+> show(p.file)
       case p: PStringLiteral => show(p.grouped)
