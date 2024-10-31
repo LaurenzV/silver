@@ -3,6 +3,7 @@ package viper.silver.parser
 import viper.silver.ast.FilePosition
 import viper.silver.ast.pretty.FastPrettyPrinterBase
 import viper.silver.parser.PSym.Brace
+import viper.silver.plugin.standard.adt.{PAdt, PAdtConstructor, PAdtSeq}
 
 object ReformatPrettyPrinter extends FastPrettyPrinterBase {
   override val defaultIndent = 4
@@ -45,9 +46,34 @@ object ReformatPrettyPrinter extends FastPrettyPrinterBase {
     }
   }
 
+  def sep[U](n: Option[U]): Cont = {
+    n.map(a => a match {
+      case _: PSpecification[_] => line
+      case _: PVars => line
+      case _: PFormalArgDecl => space
+      case _: PTypeVarDecl => space
+      case _ => nil
+    }).getOrElse(nil)
+  }
+
+  def list(n: List[AnyRef], sep: Cont): Cont = {
+    n.map(show).reduce(_ <> sep <> _)
+  }
+
   def show(n: AnyRef): Cont = {
     n match {
       case p: Option[AnyRef] => showOption(p)
+      case l: List[AnyRef] => {
+        if (l.isEmpty) {
+          nil
+        } else {
+          val sep = l.head match {
+            case _: PAdtConstructor => linebreak
+            case _ => linebreak
+          }
+          list(l, sep)
+        }
+      }
       case p: PProgram => {
         println(p)
         val elements = (p.comments ++ p.members).sortBy(el => el.pos match {
@@ -65,12 +91,12 @@ object ReformatPrettyPrinter extends FastPrettyPrinterBase {
         println(s"pres ${p.pres}");
         println(s"posts ${p.posts}");
         println(s"body ${p.body}");
-        showAnnotations(p.annotations) <> text(p.keyword.token) <+> text(p.idndef.name) <> show(p.args) <> showReturns(p.returns) <>
+        showAnnotations(p.annotations) <@@> text(p.keyword.token) <+> text(p.idndef.name) <> show(p.args) <> showReturns(p.returns) <>
         showPresPosts(p.pres, p.posts) <> showBody(show(p.body), !(p.pres.isEmpty && p.posts.isEmpty))
       }
       case p: PFunction => {
         // TODO: Add PFunctioNType
-        showAnnotations(p.annotations) <@> show(p.keyword) <+> show(p.idndef) <+>
+        showAnnotations(p.annotations) <@@> show(p.keyword) <+> show(p.idndef) <+>
           show(p.args) <+> show(p.c) <+> show(p.resultType) <>
           showPresPosts(p.pres, p.posts) <> showBody(show(p.body), !(p.pres.isEmpty && p.posts.isEmpty))
       }
@@ -114,18 +140,17 @@ object ReformatPrettyPrinter extends FastPrettyPrinterBase {
         println(s"inner: ${p.inner}");
         println(s"end: ${p.end}");
 
-        val separator = if (p.first.isInstanceOf[Option[PSpecification[_]]]) {
-          line
-        } else if (p.first.isInstanceOf[Option[PFormalArgDecl]]) {
-          space
-        } else {
-          nil
-        }
+        val separator = sep(p.first);
 
         p.first.map(show).getOrElse(nil) <@@@>
           p.inner.foldLeft(nil)((acc, b) => acc <@@@> show(b._1) <@@@> separator <@@@> show(b._2)) <@@@>
           p.end.map(show).getOrElse(nil)
       }
+      case p: PAdt => {
+        showAnnotations(p.annotations) <@@> show(p.adt) <+>
+          show(p.idndef) <> show(p.typVars) <+> show(p.c)
+      }
+      case p: PAdtSeq[_] => show(p.seq)
       case p: PVars => show(p.keyword) <+> show(p.vars) <> p.init.map(s => nil <+> show(s._1) <+> show(s._2)).getOrElse(nil)
       case p: PMethodReturns => show(p.k) <+> show(p.formalReturns)
       case p: PReserved[_] => text(p.token)
@@ -137,6 +162,7 @@ object ReformatPrettyPrinter extends FastPrettyPrinterBase {
       case p: PLocalVarDecl => show(p.idndef) <> show(p.c) <+> show(p.typ)
       case l: List[Reformattable] => l.map(show).reduce(_ <> _)
       case p: PComment => text(p.display)
+      case p: PKw => text(p.keyword)
       // TODO: Support annotations
       case p: PImport => show(p.imprt) <+> show(p.file)
       case p: PStringLiteral => show(p.grouped)
