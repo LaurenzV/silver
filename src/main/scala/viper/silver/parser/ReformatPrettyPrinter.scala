@@ -1,11 +1,11 @@
 package viper.silver.parser
 
 import viper.silver.ast.FilePosition
-import viper.silver.ast.pretty.FastPrettyPrinterBase
+import viper.silver.ast.pretty.{BracketPrettyPrinter, FastPrettyPrinterBase, PrettyExpression}
 import viper.silver.parser.PSym.Brace
 import viper.silver.plugin.standard.adt.{PAdt, PAdtConstructor, PAdtSeq}
 
-object ReformatPrettyPrinter extends FastPrettyPrinterBase {
+object ReformatPrettyPrinter extends FastPrettyPrinterBase  {
   override val defaultIndent = 4
 
   def reformat(n: Reformattable): String = {
@@ -159,7 +159,15 @@ object ReformatPrettyPrinter extends FastPrettyPrinterBase {
       case p: PMethodReturns => show(p.k) <+> show(p.formalReturns)
       case p: PReserved[_] => text(p.token)
       case p: PSpecification[_] => show(p.k) <+> show(p.e)
-      case p: PBinExp => show(p.left) <+> show(p.op) <+> show(p.right)
+      case p: PBinExp => {
+        val inner = show(p.left) <+> show(p.op) <+> show(p.right)
+
+        if (!p.brackets.isEmpty) {
+          text("(") <> inner <> text(")")
+        } else  {
+          inner
+        }
+      }
       case p: PFieldDecl => show(p.idndef) <> show(p.c) <+> show(p.typ)
       case p: PSym => text(p.symbol)
       case p: PIdnDef => p.name

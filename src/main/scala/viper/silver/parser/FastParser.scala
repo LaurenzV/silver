@@ -980,8 +980,6 @@ class FastParser {
       case _: Parsed.Failure => Seq()
     }
 
-//    println("Result: " + comments);
-
     ////
     // Parsing
     ////
