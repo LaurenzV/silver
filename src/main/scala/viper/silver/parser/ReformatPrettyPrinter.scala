@@ -50,6 +50,7 @@ object ReformatPrettyPrinter extends FastPrettyPrinterBase {
     n.map(a => a match {
       case _: PSpecification[_] => line
       case _: PVars => line
+      case _: PAssign => line
       case _: PFormalArgDecl => space
       case _: PTypeVarDecl => space
       case _ => nil
@@ -75,8 +76,6 @@ object ReformatPrettyPrinter extends FastPrettyPrinterBase {
         }
       }
       case p: PProgram => {
-        println("The program comments: ", p.comments)
-        println("The program members: ", p.members)
         val elements = (p.comments ++ p.members).sortBy(el => el.pos match {
           case (slc: FilePosition, _) => (slc.line, slc.column)
           case _ => (0, 0)
@@ -93,7 +92,7 @@ object ReformatPrettyPrinter extends FastPrettyPrinterBase {
         println(s"posts ${p.posts}");
         println(s"body ${p.body}");
         showAnnotations(p.annotations) <@@> text(p.keyword.token) <+> text(p.idndef.name) <> show(p.args) <> showReturns(p.returns) <>
-        showPresPosts(p.pres, p.posts) <> showBody(show(p.body), !(p.pres.isEmpty && p.posts.isEmpty))
+        showPresPosts(p.pres, p.posts) <> showBody(show(p.body), !(p.returns.isEmpty && p.pres.isEmpty && p.posts.isEmpty))
       }
       case p: PFunction => {
         // TODO: Add PFunctioNType
@@ -160,6 +159,7 @@ object ReformatPrettyPrinter extends FastPrettyPrinterBase {
       case p: PFieldDecl => show(p.idndef) <> show(p.c) <+> show(p.typ)
       case p: PSym => text(p.symbol)
       case p: PIdnDef => p.name
+      case p: PAssign => show(p.targets) <+> show(p.op) <+> show(p.rhs)
       case p: PLocalVarDecl => show(p.idndef) <> show(p.c) <+> show(p.typ)
       case l: List[Reformattable] => l.map(show).reduce(_ <> _)
       case p: PComment => text(p.display)

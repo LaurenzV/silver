@@ -975,7 +975,6 @@ class FastParser {
       offset += line_length
     }
 
-    println(s"prog: ${s}");
     val comments = fastparse.parse(s, programComments(_)) match {
       case Parsed.Success(value, _) => value
       case _: Parsed.Failure => Seq()
