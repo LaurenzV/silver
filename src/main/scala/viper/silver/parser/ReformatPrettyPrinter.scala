@@ -75,7 +75,8 @@ object ReformatPrettyPrinter extends FastPrettyPrinterBase {
         }
       }
       case p: PProgram => {
-        println(p)
+        println("The program comments: ", p.comments)
+        println("The program members: ", p.members)
         val elements = (p.comments ++ p.members).sortBy(el => el.pos match {
           case (slc: FilePosition, _) => (slc.line, slc.column)
           case _ => (0, 0)

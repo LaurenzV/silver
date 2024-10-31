@@ -951,7 +951,7 @@ class FastParser {
   def comment[$: P]: P[PComment] = lineComment | blockComment
 
   def programComments[$: P]: P[Seq[PComment]] = {
-    P((!StringIn("/") ~~ AnyChar).repX ~~ comment).repX
+    P((!StringIn("//", "/*") ~~ AnyChar).repX ~~ comment).repX
   }
 
   def entireProgram[$: P]: P[PProgram] = P(Start ~ programDecl ~ End)
@@ -975,6 +975,7 @@ class FastParser {
       offset += line_length
     }
 
+    println(s"prog: ${s}");
     val comments = fastparse.parse(s, programComments(_)) match {
       case Parsed.Success(value, _) => value
       case _: Parsed.Failure => Seq()
