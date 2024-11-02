@@ -100,6 +100,9 @@ object ReformatPrettyPrinter extends FastPrettyPrinterBase  {
       }
       case p: PFunction => {
         // TODO: Add PFunctioNType
+        println(s"PFunction");
+        println(s"---------------------------");
+        println(s"body ${p.body}");
         showAnnotations(p.annotations) <@@> show(p.keyword) <+> show(p.idndef) <+>
           show(p.args) <+> show(p.c) <+> show(p.resultType) <>
           showPresPosts(p.pres, p.posts) <> showBody(show(p.body), !(p.pres.isEmpty && p.posts.isEmpty))
@@ -183,6 +186,7 @@ object ReformatPrettyPrinter extends FastPrettyPrinterBase  {
       case p: PImport => show(p.imprt) <+> show(p.file)
       case p: PStringLiteral => show(p.grouped)
       case p: PRawString => text(p.str)
+      case p: PBracedExp => show(p.e)
       case n: Reformattable => text(n.reformat)
       case u => throw new IllegalArgumentException(s"attemted to format non-formattable type ${u}")
     }
