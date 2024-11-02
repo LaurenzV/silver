@@ -103,9 +103,13 @@ object ReformatPrettyPrinter extends FastPrettyPrinterBase  {
         println(s"PFunction");
         println(s"---------------------------");
         println(s"body ${p.body}");
-        showAnnotations(p.annotations) <@@> show(p.keyword) <+> show(p.idndef) <+>
+        showAnnotations(p.annotations) <@@> show(p.keyword) <+> show(p.idndef) <>
           show(p.args) <+> show(p.c) <+> show(p.resultType) <>
           showPresPosts(p.pres, p.posts) <> showBody(show(p.body), !(p.pres.isEmpty && p.posts.isEmpty))
+      }
+      case p: PPredicate => {
+        showAnnotations(p.annotations) <@@> show(p.keyword) <+> show(p.idndef) <>
+          show(p.args) <> showBody(show(p.body), false)
       }
       case PFields(annotation, field, fields, s) => {
         println(s"PFields");
