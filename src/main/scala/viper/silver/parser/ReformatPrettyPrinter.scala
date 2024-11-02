@@ -57,6 +57,7 @@ object ReformatPrettyPrinter extends FastPrettyPrinterBase  {
       case _: PAssign => line
       case _: PUnfold => line
       case _: PFold => line
+      case _: PDomainInterpretation => space
       case _: PFormalArgDecl => space
       case _: PTypeVarDecl => space
       case _ => nil
