@@ -109,6 +109,18 @@ object ReformatPrettyPrinter extends FastPrettyPrinterBase  {
           show(p.args) <+> show(p.c) <+> show(p.resultType) <>
           showPresPosts(p.pres, p.posts) <> showBody(show(p.body), !(p.pres.isEmpty && p.posts.isEmpty))
       }
+      case p: PDomain => {
+        val interp = if (p.interpretations.isEmpty) {
+          nil
+        } else  {
+          nest(defaultIndent, line <> show(p.interpretations))
+        }
+        showAnnotations(p.annotations) <@@> show(p.domain) <+>
+          show(p.idndef) <> show(p.typVars) <> interp <>
+          showBody(show(p.members), !p.interpretations.isEmpty)
+      }
+      case p: PDomainInterpretations => show(p.k) <+> show(p.m)
+      case p: PDomainInterpretation => show(p.name) <> show(p.c) <+> show(p.lit)
       case p: PPredicate => {
         showAnnotations(p.annotations) <@@> show(p.keyword) <+> show(p.idndef) <>
           show(p.args) <> showBody(show(p.body), false)
