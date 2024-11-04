@@ -84,6 +84,7 @@ object ReformatPrettyPrinter extends FastPrettyPrinterBase  {
           list(l, sep)
         }
       }
+      case p: String => text(p)
       case p: PProgram => {
         val elements = (p.comments ++ p.members).sortBy(el => el.pos match {
           case (slc: FilePosition, _) => (slc.line, slc.column)
@@ -194,8 +195,8 @@ object ReformatPrettyPrinter extends FastPrettyPrinterBase  {
       }
       case p: PFieldDecl => show(p.idndef) <> show(p.c) <+> show(p.typ)
       case p: PSym => text(p.symbol)
-      case p: PIdnDef => p.name
-      case p: PAssign => show(p.targets) <+> show(p.op) <+> show(p.rhs)
+      case p: PIdnDef => text(p.name)
+      case p: PAssign => show(p.targets) <+@> show(p.op) <+@> show(p.rhs)
       case p: PLocalVarDecl => show(p.idndef) <> show(p.c) <+> show(p.typ)
       case l: List[Reformattable] => l.map(show).reduce(_ <> _)
       case p: PComment => text(p.display)
@@ -203,13 +204,17 @@ object ReformatPrettyPrinter extends FastPrettyPrinterBase  {
       case p: PWhile => {
         show(p.keyword) <> show(p.cond) <+> showInvs(p.invs) <> showBody(show(p.body), !p.invs.isEmpty)
       }
-      // TODO: Support annotations
       case p: PImport => show(p.imprt) <+> show(p.file)
       case p: PStringLiteral => show(p.grouped)
       case p: PRawString => text(p.str)
       case p: PBracedExp => show(p.e)
+      // TODO: Actually implement the ones below
+      case p: PExp => show(p.pretty)
+      case p: PFormalArgDecl => show(p.pretty)
+      case p: PPrimitiv[_] => show(p.name)
+      case p: PCall => show(p.idnref) <> show(p.callArgs) <> show(p.typeAnnotated)
       case n: Reformattable => text(n.reformat)
-      case u => throw new IllegalArgumentException(s"attemted to format non-formattable type ${u}")
+      case u => throw new IllegalArgumentException(s"attemted to format non-formattable type ${u.getClass}")
     }
   }
 }
