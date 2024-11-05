@@ -210,6 +210,8 @@ object ReformatPrettyPrinter extends FastPrettyPrinterBase  {
       case p: PBracedExp => show(p.e)
       // TODO: Actually implement the ones below
       case p: PExp => show(p.pretty)
+      case p: PIf => show(p.keyword) <+> show(p.cond) <> showBody(show(p.thn), true) <+@> showBody(show(p.els), false)
+      case p: PElse => show(p.k) <+> showBody(show(p.els), false)
       case p: PFormalArgDecl => show(p.pretty)
       case p: PPrimitiv[_] => show(p.name)
       case p: PCall => show(p.idnref) <> show(p.callArgs) <> show(p.typeAnnotated)
