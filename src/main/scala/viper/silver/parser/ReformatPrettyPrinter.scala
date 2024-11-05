@@ -61,6 +61,7 @@ object ReformatPrettyPrinter extends FastPrettyPrinterBase  {
       case _: PExhale => line
       case _: PDomainInterpretation => space
       case _: PFormalArgDecl => space
+      case _: PFormalReturnDecl => space
       case _: PTypeVarDecl => space
       case _ => nil
     }).getOrElse(nil)
