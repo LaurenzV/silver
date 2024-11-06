@@ -130,7 +130,7 @@ object ReformatPrettyPrinter extends FastPrettyPrinterBase  {
       }
       case p: PDomainInterpretations => show(p.k) <+> show(p.m)
       case p: PDomainInterpretation => show(p.name) <> show(p.c) <+> show(p.lit)
-      case p: PDomainMembers => show(p.original.inner)
+      case p: PDomainMembers => show(p.original)
       case p: PDomainMembers1 => if (p.members.isEmpty) nil else p.members.map(m => show(m))
         .reduce(_ <> linebreak <> linebreak <> _)
       case p: PAxiom1 => {

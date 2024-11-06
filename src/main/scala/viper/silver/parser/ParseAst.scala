@@ -1687,13 +1687,8 @@ case class PDomainFunction(annotations: Seq[PAnnotation], unique: Option[PKw.Uni
   override def body = None
 }
 
-// TODO: Get rid of this?
-case class DomainWrapper(inner: PDomainMembers1)(val pos: (Position, Position)) extends PNode with PLeaf {
-  override def display: String = "wrapper"
-}
-
 case class PAxiom(annotations: Seq[PAnnotation], axiom: PKw.Axiom, idndef: Option[PIdnDef], exp: PBracedExp)(val pos: (Position, Position)) extends PDomainMember with PPrettySubnodes
-case class PDomainMembers(funcs: PDelimited[PDomainFunction, Option[PSym.Semi]], axioms: PDelimited[PAxiom, Option[PSym.Semi]], original: DomainWrapper)(val pos: (Position, Position)) extends PNode {
+case class PDomainMembers(funcs: PDelimited[PDomainFunction, Option[PSym.Semi]], axioms: PDelimited[PAxiom, Option[PSym.Semi]])(val pos: (Position, Position), val original: PDomainMembers1) extends PNode {
   override def pretty: String = {
     val fPretty = if (funcs.length == 0) "" else s"\n  ${funcs.prettyLines.replace("\n", "\n  ")}\n"
     val aPretty = if (axioms.length == 0) "" else s"\n  ${axioms.prettyLines.replace("\n", "\n  ")}\n"

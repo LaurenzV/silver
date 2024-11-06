@@ -881,7 +881,7 @@ class FastParser {
       val axioms1 = members collect { case m: PAxiom1 => m }
       val funcs = funcs1 map (f => (PDomainFunction(f.annotations, f.unique, f.function, f.idndef, f.args, f.c, f.typ, f.interpretation)(f.pos), f.s))
       val axioms = axioms1 map (a => (PAxiom(a.annotations, a.axiom, a.idndef, a.exp)(a.pos), a.s))
-      val allMembers = block.update(PDomainMembers(PDelimited(funcs)(NoPosition, NoPosition), PDelimited(axioms)(NoPosition, NoPosition), DomainWrapper(block.inner)(block.inner.pos))(block.pos))
+      val allMembers = block.update(PDomainMembers(PDelimited(funcs)(NoPosition, NoPosition), PDelimited(axioms)(NoPosition, NoPosition))(block.pos, block.inner))
       k => ap: PAnnotationsPosition => PDomain(
         ap.annotations,
         k,
