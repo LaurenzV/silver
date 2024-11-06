@@ -1694,6 +1694,8 @@ case class PDomainMembers(funcs: PDelimited[PDomainFunction, Option[PSym.Semi]],
     val aPretty = if (axioms.length == 0) "" else s"\n  ${axioms.prettyLines.replace("\n", "\n  ")}\n"
     s"${fPretty}${aPretty}"
   }
+
+  override def getExtraVals: Seq[Any] = Seq(pos, original)
 }
 
 case class PDomainInterpretation(name: PRawString, c: PSym.Colon, lit: PStringLiteral)(val pos: (Position, Position)) extends PNode with PPrettySubnodes

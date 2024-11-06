@@ -52,7 +52,6 @@ trait Rewritable extends Product {
           case da: DomainAxiom => secondArgList = Seq(da.pos, da.info, da.domainName, da.errT)
           case fa: FuncApp => secondArgList = Seq(fa.pos, fa.info, fa.typ, fa.errT)
           case df: DomainFunc => secondArgList = Seq(df.pos, df.info, df.domainName, df.errT)
-          case dm: PDomainMembers => secondArgList = Seq(dm.pos, dm.original)
           case df: DomainFuncApp => secondArgList = Seq(df.pos, df.info, df.typ, df.domainName, df.errT)
           case ba: BackendFuncApp => secondArgList = Seq(ba.pos, ba.info, ba.typ, ba.interpretation, ba.errT)
           case no: Node => secondArgList = no.getMetadata
