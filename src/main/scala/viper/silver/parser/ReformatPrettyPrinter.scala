@@ -94,6 +94,9 @@ object ReformatPrettyPrinter extends FastPrettyPrinterBase  {
         });
         elements.map(show).foldLeft(nil)((acc, n) => acc <@@> n)
       }
+      case p: PDefine => {
+        showAnnotations(p.annotations) <@@> show(p.define) <+> show(p.idndef) <> show(p.parameters) <+> show(p.body)
+      }
       case p: PMethod => {
         // TODO: Test annotations
         println(s"PMethod");
