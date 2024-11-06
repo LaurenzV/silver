@@ -1624,7 +1624,7 @@ trait PNoSpecsFunction extends PAnyFunction {
 ///////////////////////////////////////////////////////////////////////////
 // Program Members
 
-case class PProgram(imported: Seq[PProgram], members: Seq[PMember], var comments: Seq[PComment])(val pos: (Position, Position), val localErrors: Seq[ParseReport]) extends PNode {
+case class PProgram(imported: Seq[PProgram], members: Seq[PMember])(val pos: (Position, Position), val localErrors: Seq[ParseReport], var comments: Seq[PComment], var offsets: Seq[Int], var rawProgram: String) extends PNode {
   val imports: Seq[PImport] = members.collect { case i: PImport => i } ++ imported.flatMap(_.imports)
   val macros: Seq[PDefine] = members.collect { case m: PDefine => m } ++ imported.flatMap(_.macros)
   val domains: Seq[PDomain] = members.collect { case d: PDomain => d } ++ imported.flatMap(_.domains)
@@ -1652,14 +1652,14 @@ case class PProgram(imported: Seq[PProgram], members: Seq[PMember], var comments
     all.map(_.map(_.pretty).mkString("\n")).mkString("\n")
   }
 
-  override def getExtraVals: Seq[Any] = Seq(pos, localErrors)
+  override def getExtraVals: Seq[Any] = Seq(pos, localErrors, comments, offsets, rawProgram)
 
-  def filterMembers(f: PMember => Boolean): PProgram = PProgram(imported.map(_.filterMembers(f)), members.filter(f), comments)(pos, localErrors)
-  def newImported(newImported: Seq[PProgram]): PProgram = if (newImported.isEmpty) this else PProgram(imported ++ newImported, members, comments)(pos, localErrors)
+  def filterMembers(f: PMember => Boolean): PProgram = PProgram(imported.map(_.filterMembers(f)), members.filter(f))(pos, localErrors, comments, offsets, rawProgram)
+  def newImported(newImported: Seq[PProgram]): PProgram = if (newImported.isEmpty) this else PProgram(imported ++ newImported, members)(pos, localErrors, comments, offsets, rawProgram)
 }
 
 object PProgram {
-  def error(error: ParseReport): PProgram = PProgram(Nil, Nil, Nil)((error.pos, error.pos), Seq(error))
+  def error(error: ParseReport): PProgram = PProgram(Nil, Nil)((error.pos, error.pos), Seq(error), Nil, Nil, "")
 }
 
 case class PImport(annotations: Seq[PAnnotation], imprt: PKw.Import, file: PStringLiteral)(val pos: (FilePosition, FilePosition)) extends PMember with PPrettySubnodes {

@@ -854,7 +854,7 @@ class FastParser {
     P(programMember.rep map (members => {
       val warnings = _warnings
       _warnings = Seq()
-      PProgram(Nil, members, Nil)(_, warnings)
+      PProgram(Nil, members)(_, warnings, Nil, Nil, "")
     })).pos
 
   def preambleImport[$: P]: P[PKw.Import => PAnnotationsPosition => PImport] = P(
@@ -1037,7 +1037,7 @@ class FastParser {
     val warnings = _warnings
     _warnings = Nil
     val pos = (FilePosition(lineCol.getPos(0)), FilePosition(lineCol.getPos(res.get.index)))
-    PProgram(Nil, members, Seq())(pos, errors ++ warnings);
+    PProgram(Nil, members)(pos, errors ++ warnings, Nil, Nil, "");
   }
 
   object ParserExtension extends ParserPluginTemplate {
