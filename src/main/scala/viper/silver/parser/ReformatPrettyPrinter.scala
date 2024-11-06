@@ -61,6 +61,7 @@ object ReformatPrettyPrinter extends FastPrettyPrinterBase  {
       case _: PExhale => line
       case _: PDomainInterpretation => space
       case _: PFormalArgDecl => space
+      case _: PDomainFunctionArg => space
       case _: PFormalReturnDecl => space
       case _: PTypeVarDecl => space
       case _ => nil
@@ -129,7 +130,10 @@ object ReformatPrettyPrinter extends FastPrettyPrinterBase  {
       case p: PDomainMembers => show(p.original.inner)
       case p: PDomainMembers1 => if (p.members.isEmpty) nil else p.members.map(m => show(m))
         .reduce(_ <> linebreak <> linebreak <> _)
-      case p: PAxiom1 => showAnnotations(p.annotations) <@@> show(p.axiom) <+@> show(p.idndef) <+@> show(p.exp) <> show(p.s)
+      case p: PAxiom1 => {
+        println(s"axiom stuff: ${p.exp}")
+        showAnnotations(p.annotations) <@@> show(p.axiom) <+@> show(p.idndef) <+@> show(p.exp) <> show(p.s)
+      }
       case p: PDomainFunction1 => showAnnotations(p.annotations) <@@> show(p.unique) <+@>
         show(p.function) <+@> show(p.interpretation) <+>
         show(p.idndef) <> show(p.args) <> show(p.c) <+> show(p.typ) <+> show(p.s)
@@ -161,7 +165,7 @@ object ReformatPrettyPrinter extends FastPrettyPrinterBase  {
           show(p.l) <> nest(defaultIndent, line <> inner) <> line <> show(p.r)
         }
       }
-      case PGrouped(left, inner: Reformattable, right)  => {
+      case PGrouped(left, inner: Reformattable, right) => {
         println(s"PGrouped without brace");
         println(s"left: ${left}");
         println(s"inner: ${inner}");
@@ -169,6 +173,7 @@ object ReformatPrettyPrinter extends FastPrettyPrinterBase  {
         println(s"---------------------------");
         show(left) <> nest(defaultIndent, show(inner)) <> show(right)
       }
+      case p: PTrigger => show(p.exp)
       case p: PSeqn => show(p.ss)
       case p: PDelimited[Reformattable, Reformattable] => {
         println(s"PDelimited");
@@ -187,6 +192,8 @@ object ReformatPrettyPrinter extends FastPrettyPrinterBase  {
         showAnnotations(p.annotations) <@@> show(p.adt) <+>
           show(p.idndef) <> show(p.typVars) <+> show(p.c)
       }
+      case p: PForall => show(p.keyword) <+> show(p.vars) <+>
+        show(p.c) <+> show(p.triggers) <+> show(p.body)
       case p: PAdtSeq[_] => show(p.seq)
       case p: PVars => show(p.keyword) <+> show(p.vars) <> p.init.map(s => nil <+> show(s._1) <+> show(s._2)).getOrElse(nil)
       case p: PMethodReturns => show(p.k) <+> show(p.formalReturns)
