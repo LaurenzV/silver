@@ -90,7 +90,7 @@ case class Translator(program: PProgram) {
   }
 
   private def translate(d: PDomain): Domain = d match {
-    case PDomain(_, _, name, _, interpretation, PGrouped(_, PDomainMembers(functions, axioms), _)) =>
+    case PDomain(_, _, name, _, interpretation, PGrouped(_, PDomainMembers(functions, axioms, original), _)) =>
       val d = findDomain(name)
       val dd = d.copy(functions = functions.toSeq map (f => findDomainFunction(f.idndef)),
         axioms = axioms.toSeq map translate, interpretations = interpretation.map(_.interps))(d.pos, d.info, d.errT)

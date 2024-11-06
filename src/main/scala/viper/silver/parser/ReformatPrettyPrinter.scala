@@ -126,6 +126,13 @@ object ReformatPrettyPrinter extends FastPrettyPrinterBase  {
       }
       case p: PDomainInterpretations => show(p.k) <+> show(p.m)
       case p: PDomainInterpretation => show(p.name) <> show(p.c) <+> show(p.lit)
+      case p: PDomainMembers => show(p.original.inner)
+      case p: PDomainMembers1 => if (p.members.isEmpty) nil else p.members.map(m => show(m))
+        .reduce(_ <> linebreak <> linebreak <> _)
+      case p: PAxiom1 => showAnnotations(p.annotations) <@@> show(p.axiom) <+@> show(p.idndef) <+@> show(p.exp) <> show(p.s)
+      case p: PDomainFunction1 => showAnnotations(p.annotations) <@@> show(p.unique) <+@>
+        show(p.function) <+@> show(p.interpretation) <+>
+        show(p.idndef) <> show(p.args) <> show(p.c) <+> show(p.typ) <+> show(p.s)
       case p: PPredicate => {
         showAnnotations(p.annotations) <@@> show(p.keyword) <+> show(p.idndef) <>
           show(p.args) <> showBody(show(p.body), false)
