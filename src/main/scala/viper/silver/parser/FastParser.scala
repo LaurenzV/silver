@@ -988,6 +988,8 @@ class FastParser {
     fastparse.parse(s, entireProgram(_)) match {
       case Parsed.Success(value, _) => {
         value.comments = comments;
+        value.offsets = _line_offset;
+        value.rawProgram = s;
         return value;
       }
       case _: Parsed.Failure =>
