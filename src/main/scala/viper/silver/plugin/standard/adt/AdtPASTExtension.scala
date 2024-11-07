@@ -13,6 +13,7 @@ import viper.silver.plugin.standard.adt.PAdtConstructor.findAdtConstructor
 
 import scala.annotation.unused
 import viper.silver.ast.utility.rewriter.HasExtraVars
+import viper.silver.parser.ReformatPrettyPrinter.{show, showAnnotations}
 
 /**
   * Keywords used to define ADT's
@@ -76,6 +77,9 @@ case class PAdt(annotations: Seq[PAnnotation], adt: PReserved[PAdtKeyword.type],
     adtType.kind = PAdtTypeKinds.Adt
     adtType
   }
+
+  override def reformat(ctx: ReformatterContext): Cont = showAnnotations(annotations, ctx) <@@> show(adt, ctx) <+>
+    show(idndef, ctx) <> show(typVars, ctx) <+> show(c, ctx)
 }
 
 object PAdt {
@@ -97,12 +101,19 @@ trait PAdtChild extends PNode {
 case class PAdtSeq[T <: PNode](seq: PGrouped[PSym.Brace, Seq[T]])(val pos: (Position, Position)) extends PExtender {
   def inner: Seq[T] = seq.inner
   override def pretty = s"${seq.l.pretty}\n  ${seq.inner.map(_.pretty).mkString("\n  ")}\n${seq.r.pretty}"
+
+  override def reformat(ctx: ReformatterContext): Cont = {
+    show(seq, ctx)
+  }
 }
 
 /** Any argument to a method, function or predicate. */
 case class PAdtFieldDecl(idndef: PIdnDef, c: PSym.Colon, typ: PType)(val pos: (Position, Position)) extends PAnyFormalArgDecl with PTypedDeclaration with PGlobalDeclaration with PMemberUniqueDeclaration with PAdtChild {
   def constructor: PAdtConstructor = getAncestor[PAdtConstructor].get
   def annotations: Seq[PAnnotation] = Nil
+
+  override def reformat(ctx: ReformatterContext): Cont = show(idndef, ctx) <>
+    show(c, ctx) <+> show(typ, ctx)
 }
 object PAdtFieldDecl {
   def apply(d: PIdnTypeBinding): PAdtFieldDecl = PAdtFieldDecl(d.idndef, d.c, d.typ)(d.pos)
@@ -137,6 +148,9 @@ case class PAdtConstructor(annotations: Seq[PAnnotation], idndef: PIdnDef, args:
   override def keyword = adt.adt
   override def c = PReserved.implied(PSym.Colon)
   override def body = None
+
+  override def reformat(ctx: ReformatterContext): Cont = showAnnotations(annotations, ctx) <@@>
+    show(idndef, ctx) <> show(args, ctx)
 }
 
 object PAdtConstructor {

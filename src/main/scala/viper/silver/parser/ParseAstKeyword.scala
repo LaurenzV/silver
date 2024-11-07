@@ -7,6 +7,8 @@
 package viper.silver.parser
 
 import viper.silver.ast.{NoPosition, Position}
+import viper.silver.parser.PSym.Brace
+import viper.silver.parser.ReformatPrettyPrinter.{defaultIndent, line, nest, nil, sep, show, showOption, text}
 import viper.silver.parser.TypeHelper._
 
 trait PReservedString {
@@ -21,6 +23,8 @@ trait LeftNewlineIndent extends PReservedString { override def leftPad = "\n  " 
 case class PReserved[+T <: PReservedString](rs: T)(val pos: (Position, Position)) extends PNode with PLeaf {
   override def display = rs.display
   def token = rs.token
+
+  override def reformat(ctx: ReformatterContext): Cont = text(token)
 }
 object PReserved {
   def implied[T <: PReservedString](rs: T): PReserved[T] = PReserved(rs)(NoPosition, NoPosition)
@@ -32,6 +36,21 @@ case class PGrouped[G <: PSym.Group, +T](l: PReserved[G#L], inner: T, r: PReserv
   def prettyLines(implicit ev: T <:< PDelimited[_, _]): String = {
     val iPretty = if (inner.length == 0) "" else s"\n  ${inner.prettyLines.replace("\n", "\n  ")}\n"
     s"${l.pretty}${iPretty}${r.pretty}"
+  }
+
+  override def reformat(ctx: ReformatterContext): Cont = {
+    if (l.rs.isInstanceOf[Brace]) {
+      val left = show(l, ctx);
+      val inner_ = show(inner, ctx);
+      val right = show(r, ctx);
+      if (inner_ == nil) {
+        left <> right
+      } else {
+        left <> nest(defaultIndent, line <> inner_) <> line <> right
+      }
+    } else  {
+      show(l, ctx) <> nest(defaultIndent, show(inner, ctx)) <> show(r, ctx)
+    }
   }
 }
 object PGrouped {
@@ -85,6 +104,20 @@ class PDelimited[+T, +D](
   }
   override def hashCode(): Int = viper.silver.utility.Common.generateHashCode(first, inner, end)
   override def toString(): String = s"PDelimited($first,$inner,$end)"
+
+  override def reformat(ctx: ReformatterContext): Cont = {
+    println(s"PDelimited");
+    println(s"---------------------------");
+    println(s"first: ${first}");
+    println(s"inner: ${inner}");
+    println(s"end: ${end}");
+
+    val separator = sep(first);
+
+    showOption(first, ctx) <@@@>
+      inner.foldLeft(nil)((acc, b) => acc <@@@> show(b._1, ctx) <@@@> separator <@@@> show(b._2, ctx)) <@@@>
+      showOption(end, ctx)
+  }
 }
 
 object PDelimited {
@@ -131,7 +164,10 @@ sealed trait PKeywordAtom
 sealed trait PKeywordIf extends PKeywordStmt
 
 
-abstract class PKw(val keyword: String) extends PKeyword
+abstract class PKw(val keyword: String) extends PKeyword with Reformattable {
+  override def reformat(ctx: ReformatterContext): Cont = text(keyword)
+}
+
 object PKw {
   case object Import extends PKw("import") with PKeywordLang
   type Import = PReserved[Import.type]
@@ -264,9 +300,11 @@ object PKw {
 }
 
 /** Anything that is composed of /![a-zA-Z]/ characters. */
-trait PSymbol extends PReservedString {
+trait PSymbol extends PReservedString with Reformattable {
   def symbol: String
   override def token = symbol
+
+  override def reformat(ctx: ReformatterContext): Cont =  text(symbol)
 }
 
 trait PSymbolLang extends PSymbol
