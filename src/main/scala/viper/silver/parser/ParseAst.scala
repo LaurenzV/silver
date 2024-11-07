@@ -1700,6 +1700,7 @@ case class PProgram(imported: Seq[PProgram], members: Seq[PMember])(val pos: (Po
         case (slc: FilePosition, _) => (slc.line, slc.column)
         case _ => (0, 0)
       });
+      println(s"members: ${members}");
       elements.map(show(_, ctx)).foldLeft(nil)((acc, n) => acc <@@> n)
     }
   }
