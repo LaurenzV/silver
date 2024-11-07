@@ -3,7 +3,7 @@ package viper.silver.parser
 import viper.silver.ast.{FilePosition, HasLineColumn, LineColumnPosition, Position}
 import viper.silver.ast.pretty.{BracketPrettyPrinter, FastPrettyPrinterBase, PrettyExpression}
 import viper.silver.parser.PSym.Brace
-import viper.silver.plugin.standard.adt.{PAdt, PAdtConstructor, PAdtSeq}
+import viper.silver.plugin.standard.adt.{PAdt, PAdtConstructor, PAdtFieldDecl, PAdtSeq}
 
 import scala.collection.mutable.ArrayBuffer
 
@@ -21,7 +21,7 @@ class ReformatterContext(val program: String, val offsets: Seq[Int]) {
         val c_offset = getByteOffset(c);
         val p_offset = getByteOffset(p);
         if (c_offset <= p_offset) {
-          program.substring(c_offset, p_offset)
+          program.substring(c_offset, p_offset).trim
         } else {
           ""
         }
@@ -100,13 +100,20 @@ object ReformatPrettyPrinter extends FastPrettyPrinterBase  {
   }
 
   def showProgram(p: PProgram, ctx: ReformatterContext): Cont = {
-    p.members.map(show(_, ctx)).foldLeft(nil)((acc, n) => acc <@@> n)
+//    p.members.map(show(_, ctx)).foldLeft(nil)((acc, n) => acc <@@> n)
+    val elements = (p.comments ++ p.members).sortBy(el => el.pos match {
+      case (slc: FilePosition, _) => (slc.line, slc.column)
+      case _ => (0, 0)
+    });
+    elements.map(show(_, ctx)).foldLeft(nil)((acc, n) => acc <@@> n)
   }
 
   def show(n: AnyRef, ctx: ReformatterContext): Cont = {
     val trivia = n match {
       case p: PLeaf => {
         val trivia = ctx.getTrivia(p.pos);
+        println(s"cur: ${ctx.currentPosition}, new: ${p.pos}")
+        println(s"trivia: ${trivia}")
         ctx.currentPosition = p.pos;
         text(trivia)
       };
@@ -132,22 +139,22 @@ object ReformatPrettyPrinter extends FastPrettyPrinterBase  {
       }
       case p: PMethod => {
         // TODO: Test annotations
-//        println(s"PMethod");
-//        println(s"---------------------------");
-//        println(s"args ${p.args}");
-//        println(s"returns ${p.returns}");
-//        println(s"pres ${p.pres}");
-//        println(s"posts ${p.posts}");
-//        println(s"body ${p.body}");
-//        println(s"keyword pos: ${p.keyword.pos}");
+        println(s"PMethod");
+        println(s"---------------------------");
+        println(s"args ${p.args}");
+        println(s"returns ${p.returns}");
+        println(s"pres ${p.pres}");
+        println(s"posts ${p.posts}");
+        println(s"body ${p.body}");
+        println(s"keyword pos: ${p.keyword.pos}");
         showAnnotations(p.annotations, ctx) <@@> show(p.keyword, ctx) <+> show(p.idndef, ctx) <> show(p.args, ctx) <> showReturns(p.returns, ctx) <>
         showPresPosts(p.pres, p.posts, ctx) <> showBody(show(p.body, ctx), !(p.returns.isEmpty && p.pres.isEmpty && p.posts.isEmpty))
       }
       case p: PFunction => {
         // TODO: Add PFunctioNType
-//        println(s"PFunction");
-//        println(s"---------------------------");
-//        println(s"body ${p.body}");
+        println(s"PFunction");
+        println(s"---------------------------");
+        println(s"body ${p.body}");
         showAnnotations(p.annotations, ctx) <@@> show(p.keyword, ctx) <+> show(p.idndef, ctx) <>
           show(p.args, ctx) <+> show(p.c, ctx) <+> show(p.resultType, ctx) <>
           showPresPosts(p.pres, p.posts, ctx) <> showBody(show(p.body, ctx), !(p.pres.isEmpty && p.posts.isEmpty))
@@ -188,12 +195,12 @@ object ReformatPrettyPrinter extends FastPrettyPrinterBase  {
         show(field, ctx) <+> show(fields, ctx) <> show(s, ctx)
       }
       case p: PGrouped[Brace, Reformattable] if p.l.rs.isInstanceOf[Brace] => {
-//        println(s"PGrouped with brace");
-//
-//        println(s"---------------------------");
-//        println(s"left: ${p.l}");
-//        println(s"inner: ${p.inner}");
-//        println(s"right: ${p.r}");
+        println(s"PGrouped with brace");
+
+        println(s"---------------------------");
+        println(s"left: ${p.l}");
+        println(s"inner: ${p.inner}");
+        println(s"right: ${p.r}");
         val left = show(p.l, ctx);
         val inner = show(p.inner, ctx);
         val right = show(p.r, ctx);
@@ -204,21 +211,21 @@ object ReformatPrettyPrinter extends FastPrettyPrinterBase  {
         }
       }
       case PGrouped(left, inner: Reformattable, right) => {
-//        println(s"PGrouped without brace");
-//        println(s"left: ${left}");
-//        println(s"inner: ${inner}");
-//        println(s"right: ${right}");
-//        println(s"---------------------------");
+        println(s"PGrouped without brace");
+        println(s"left: ${left}");
+        println(s"inner: ${inner}");
+        println(s"right: ${right}");
+        println(s"---------------------------");
         show(left, ctx) <> nest(defaultIndent, show(inner, ctx)) <> show(right, ctx)
       }
       case p: PTrigger => show(p.exp, ctx)
       case p: PSeqn => show(p.ss, ctx)
       case p: PDelimited[Reformattable, Reformattable] => {
-//        println(s"PDelimited");
-//        println(s"---------------------------");
-//        println(s"first: ${p.first}");
-//        println(s"inner: ${p.inner}");
-//        println(s"end: ${p.end}");
+        println(s"PDelimited");
+        println(s"---------------------------");
+        println(s"first: ${p.first}");
+        println(s"inner: ${p.inner}");
+        println(s"end: ${p.end}");
 
         val separator = sep(p.first);
 
@@ -261,17 +268,21 @@ object ReformatPrettyPrinter extends FastPrettyPrinterBase  {
       case p: PStringLiteral => show(p.grouped, ctx)
       case p: PRawString => text(p.str)
       case p: PBracedExp => show(p.e, ctx)
-      // TODO: Actually implement the ones below
-      case p: PExp => show(p.pretty, ctx)
+      case p: PTypeVarDecl => show(p.idndef, ctx)
+      case p: PAdtConstructor => showAnnotations(p.annotations, ctx) <@@> show(p.idndef, ctx) <> show(p.args, ctx)
+      case p: PAdtFieldDecl => show(p.idndef, ctx) <> show(p.c, ctx) <+> show(p.typ, ctx)
       case p: PIf => show(p.keyword, ctx) <+> show(p.cond, ctx) <> showBody(show(p.thn, ctx), true) <+@> showBody(show(p.els, ctx), false)
       case p: PElse => show(p.k, ctx) <+> showBody(show(p.els, ctx), false)
-      case p: PFormalArgDecl => show(p.pretty, ctx)
       case p: PPrimitiv[_] => show(p.name, ctx)
+      // TODO: Actually implement the ones below
+      case p: PExp => show(p.pretty, ctx)
+      case p: PFormalArgDecl => show(p.pretty, ctx)
       case p: PCall => show(p.idnref, ctx) <> show(p.callArgs, ctx) <> show(p.typeAnnotated, ctx)
       case n: Reformattable => text(n.reformat)
       case u => throw new IllegalArgumentException(s"attemted to format non-formattable type ${u.getClass}")
     }
 
-    reformatted
+//    trivia <> reformatted
+     reformatted
   }
 }
