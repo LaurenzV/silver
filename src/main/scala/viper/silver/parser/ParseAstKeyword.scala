@@ -8,7 +8,7 @@ package viper.silver.parser
 
 import viper.silver.ast.{NoPosition, Position}
 import viper.silver.parser.PSym.Brace
-import viper.silver.parser.ReformatPrettyPrinter.{defaultIndent, line, nest, nil, sep, show, showOption, text}
+import viper.silver.parser.ReformatPrettyPrinter.{defaultIndent, line, nest, nil, sep, show, showAny, showOption, text}
 import viper.silver.parser.TypeHelper._
 
 trait PReservedString {
@@ -41,7 +41,7 @@ case class PGrouped[G <: PSym.Group, +T](l: PReserved[G#L], inner: T, r: PReserv
   override def reformat(ctx: ReformatterContext): Cont = {
     if (l.rs.isInstanceOf[Brace]) {
       val left = show(l, ctx);
-      val inner_ = show(inner, ctx);
+      val inner_ = showAny(inner, ctx);
       val right = show(r, ctx);
       if (inner_ == nil) {
         left <> right
@@ -49,7 +49,7 @@ case class PGrouped[G <: PSym.Group, +T](l: PReserved[G#L], inner: T, r: PReserv
         left <> nest(defaultIndent, line <> inner_) <> line <> right
       }
     } else  {
-      show(l, ctx) <> nest(defaultIndent, show(inner, ctx)) <> show(r, ctx)
+      show(l, ctx) <> nest(defaultIndent, showAny(inner, ctx)) <> show(r, ctx)
     }
   }
 }
@@ -114,9 +114,9 @@ class PDelimited[+T, +D](
 
     val separator = sep(first);
 
-    showOption(first, ctx) <@@@>
-      inner.foldLeft(nil)((acc, b) => acc <@@@> show(b._1, ctx) <@@@> separator <@@@> show(b._2, ctx)) <@@@>
-      showOption(end, ctx)
+    showAny(first, ctx) <@@@>
+      inner.foldLeft(nil)((acc, b) => acc <@@@> showAny(b._1, ctx) <@@@> separator <@@@> showAny(b._2, ctx)) <@@@>
+      showAny(end, ctx)
   }
 }
 

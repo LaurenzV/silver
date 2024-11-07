@@ -42,9 +42,9 @@ object ReformatPrettyPrinter extends FastPrettyPrinterBase  {
     super.pretty(defaultWidth, show(p, ctx))
   }
 
-  def showOption[T <: Reformattable](n: Option[T], ctx: ReformatterContext): Cont = {
+  def showOption[T <: Any](n: Option[T], ctx: ReformatterContext): Cont = {
     n match {
-      case Some(r) => show(r, ctx)
+      case Some(r) => showAny(r, ctx)
       case None => nil
     }
   }
@@ -113,7 +113,15 @@ object ReformatPrettyPrinter extends FastPrettyPrinterBase  {
     r.reformat(ctx)
   }
 
-  def showSeq(l: Seq[Reformattable], ctx: ReformatterContext): Cont = {
+  def showAny(n: Any, ctx: ReformatterContext): Cont = {
+    n match {
+      case p: Reformattable => show(p, ctx)
+      case p: Option[Any] => showOption(p, ctx)
+      case p: Seq[Any] => showSeq(p, ctx)
+    }
+  }
+
+  def showSeq(l: Seq[Any], ctx: ReformatterContext): Cont = {
     if (l.isEmpty) {
       nil
     } else {
@@ -121,7 +129,7 @@ object ReformatPrettyPrinter extends FastPrettyPrinterBase  {
         case _: PAdtConstructor => linebreak
         case _ => linebreak
       }
-      l.map(show(_, ctx)).reduce(_ <> sep <> _)
+      l.map(showAny(_, ctx)).reduce(_ <> sep <> _)
     }
   }
 }

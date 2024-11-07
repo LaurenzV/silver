@@ -13,7 +13,7 @@ import viper.silver.plugin.standard.adt.PAdtConstructor.findAdtConstructor
 
 import scala.annotation.unused
 import viper.silver.ast.utility.rewriter.HasExtraVars
-import viper.silver.parser.ReformatPrettyPrinter.{show, showAnnotations}
+import viper.silver.parser.ReformatPrettyPrinter.{show, showAnnotations, showOption}
 
 /**
   * Keywords used to define ADT's
@@ -79,7 +79,7 @@ case class PAdt(annotations: Seq[PAnnotation], adt: PReserved[PAdtKeyword.type],
   }
 
   override def reformat(ctx: ReformatterContext): Cont = showAnnotations(annotations, ctx) <@@> show(adt, ctx) <+>
-    show(idndef, ctx) <> show(typVars, ctx) <+> show(c, ctx)
+    show(idndef, ctx) <> showOption(typVars, ctx) <+> show(c, ctx)
 }
 
 object PAdt {

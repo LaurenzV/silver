@@ -7,15 +7,14 @@
 package viper.silver.parser
 
 
-import viper.silver.ast.pretty.FastPrettyPrinter.Cont
-import viper.silver.ast.{FilePosition, HasLineColumn, LineColumnPosition, Position}
-import viper.silver.ast.pretty.FastPrettyPrinterBase
-import viper.silver.parser.ReformatPrettyPrinter.{defaultIndent, line, nest, nil, show, showAnnotations, showBody, showInvs, showSeq, showOption, showPresPosts, showReturns, text}
+import viper.silver.ast
+import viper.silver.ast.{FilePosition, HasLineColumn, Position}
+import viper.silver.parser.ReformatPrettyPrinter.{nil, show, showAnnotations, showBody, showInvs, showOption, showPresPosts, showReturns, showSeq, text}
 
 import java.util.concurrent.atomic.{AtomicInteger, AtomicLong}
 import viper.silver.ast.utility.Visitor
 import viper.silver.ast.utility.rewriter.{HasExtraValList, HasExtraVars, Rewritable, StrategyBuilder}
-import viper.silver.ast.{Exp, FilePosition, HasLineColumn, Member, NoPosition, Position, SourcePosition, Stmt, Type}
+import viper.silver.ast.{Exp, Member, NoPosition, SourcePosition, Stmt, Type}
 import viper.silver.parser.TypeHelper._
 import viper.silver.verifier.ParseReport
 
@@ -603,7 +602,7 @@ case class PMapType(map: PKw.Map, typ: PGrouped[PSym.Bracket, PPairArgument[PTyp
  * a real type by macro expansion.
  */
 case class PMacroType(use: PCall) extends PType {
-  override val pos: (Position, Position) = use.pos
+  override val pos: (ast.Position, ast.Position) = use.pos
   override def pretty = use.pretty
   override def isValidOrUndeclared: Boolean = ???
   override def substitute(ts: PTypeSubstitution): PType = ???
@@ -614,7 +613,7 @@ case class PMacroType(use: PCall) extends PType {
   * the type of any expression whose value is meaningful in the translation.
   */
 sealed trait PInternalType extends PType {
-  override val pos: (Position, Position) = (NoPosition, NoPosition)
+  override val pos: (ast.Position, ast.Position) = (NoPosition, NoPosition)
   override val subNodes: Seq[PType] = Seq()
   override def substitute(ts: PTypeSubstitution) = this
 }
@@ -996,8 +995,9 @@ case class PCall(idnref: PIdnRef[PCallable], callArgs: PDelimited.Comma[PSym.Par
     args.foreach(_.forceSubstitution(ts))
   }
 
+  // TODO: How does typeAnnotated need to be added?
   override def reformat(ctx: ReformatterContext): Cont = show(idnref, ctx) <>
-    show(callArgs, ctx) <> showOption(typeAnnotated, ctx)
+    show(callArgs, ctx)
 }
 
 class PBinExp(val left: PExp, val op: PReserved[PBinaryOp], val right: PExp)(val pos: (Position, Position)) extends POpApp {
@@ -1694,6 +1694,16 @@ case class PProgram(imported: Seq[PProgram], members: Seq[PMember])(val pos: (Po
     prefix + m + "\n\n" + i
   }
 
+  override def reformat(ctx: ReformatterContext): Cont = {
+    {
+      val elements = (comments ++ members).sortBy(el => el.pos match {
+        case (slc: FilePosition, _) => (slc.line, slc.column)
+        case _ => (0, 0)
+      });
+      elements.map(show(_, ctx)).foldLeft(nil)((acc, n) => acc <@@> n)
+    }
+  }
+
   // Pretty print members in a specific order
   def prettyOrdered: String = {
     val all = Seq(imports, macros, domains, fields, functions, predicates, methods, extensions).filter(_.length > 0)
@@ -1771,7 +1781,7 @@ case class PDomainInterpretation(name: PRawString, c: PSym.Colon, lit: PStringLi
 case class PDomainInterpretations(k: PReserved[PKeywordLang], m: PDelimited.Comma[PSym.Paren, PDomainInterpretation])(val pos: (Position, Position)) extends PNode with PPrettySubnodes {
   def interps: Map[String, String] = m.inner.toSeq.map(i => i.name.str -> i.lit.str).toMap
 
-  def reformat(ctx: ReformatterContext): Cont = show(k, ctx) <+> show(m, ctx)
+  override def reformat(ctx: ReformatterContext): Cont = show(k, ctx) <+> show(m, ctx)
 }
 
 trait PDomainMember1 extends PNode with PPrettySubnodes
