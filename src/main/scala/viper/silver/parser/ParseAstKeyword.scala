@@ -8,7 +8,7 @@ package viper.silver.parser
 
 import viper.silver.ast.{NoPosition, Position}
 import viper.silver.parser.PSym.Brace
-import viper.silver.parser.ReformatPrettyPrinter.{defaultIndent, line, nest, nil, sep, show, showAny, showOption, text}
+import viper.silver.parser.ReformatPrettyPrinter.{show, showAny}
 import viper.silver.parser.TypeHelper._
 
 trait PReservedString {
@@ -106,13 +106,17 @@ class PDelimited[+T, +D](
   override def toString(): String = s"PDelimited($first,$inner,$end)"
 
   override def reformat(ctx: ReformatterContext): Cont = {
-    println(s"PDelimited");
-    println(s"---------------------------");
-    println(s"first: ${first}");
-    println(s"inner: ${inner}");
-    println(s"end: ${end}");
+//    println(s"PDelimited");
+//    println(s"---------------------------");
+//    println(s"first: ${first}");
+//    println(s"inner: ${inner}");
+//    println(s"end: ${end}");
 
-    val separator = sep(first);
+    val separator = delimiters.headOption match {
+      case Some(p: PSym.Comma) => space
+      case None => nil
+      case _ => line
+    };
 
     showAny(first, ctx) <@@@>
       inner.foldLeft(nil)((acc, b) => acc <@@@> showAny(b._1, ctx) <@@@> separator <@@@> showAny(b._2, ctx)) <@@@>

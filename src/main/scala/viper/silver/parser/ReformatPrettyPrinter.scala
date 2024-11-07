@@ -80,24 +80,6 @@ object ReformatPrettyPrinter extends FastPrettyPrinterBase  {
     }
   }
 
-  def sep[U](n: Option[U]): Cont = {
-    n.map(a => a match {
-      case _: PSpecification[_] => line
-      case _: PVars => line
-      case _: PAssign => line
-      case _: PUnfold => line
-      case _: PFold => line
-      case _: PInhale => line
-      case _: PExhale => line
-      case _: PDomainInterpretation => space
-      case _: PFormalArgDecl => space
-      case _: PDomainFunctionArg => space
-      case _: PFormalReturnDecl => space
-      case _: PTypeVarDecl => space
-      case _ => nil
-    }).getOrElse(nil)
-  }
-
   def show(r: Reformattable, ctx: ReformatterContext): Cont = {
     val trivia = r match {
       case p: PLeaf => {

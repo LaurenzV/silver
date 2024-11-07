@@ -1695,14 +1695,13 @@ case class PProgram(imported: Seq[PProgram], members: Seq[PMember])(val pos: (Po
   }
 
   override def reformat(ctx: ReformatterContext): Cont = {
-    {
-      val elements = (comments ++ members).sortBy(el => el.pos match {
-        case (slc: FilePosition, _) => (slc.line, slc.column)
-        case _ => (0, 0)
-      });
-      println(s"members: ${members}");
-      elements.map(show(_, ctx)).foldLeft(nil)((acc, n) => acc <@@> n)
-    }
+    val elements = (comments ++ members).sortBy(el => el.pos match {
+      case (slc: FilePosition, _) => (slc.line, slc.column)
+      case _ => (0, 0)
+    });
+    println(s"members: ${members}");
+    elements.map(show(_, ctx)).foldLeft(nil)((acc, n) => acc <@@> n)
+    // members.map(show(_, ctx)).foldLeft(nil)((acc, n) => acc <@@> n)
   }
 
   // Pretty print members in a specific order
@@ -1850,14 +1849,14 @@ case class PMethod(annotations: Seq[PAnnotation], keyword: PKw.Method, idndef: P
 
   override def reformat(ctx: ReformatterContext): Cont = {
     // TODO: Test annotations
-    println(s"PMethod");
-    println(s"---------------------------");
-    println(s"args ${args}");
-    println(s"returns ${returns}");
-    println(s"pres ${pres}");
-    println(s"posts ${posts}");
-    println(s"body ${body}");
-    println(s"keyword pos: ${keyword.pos}");
+//    println(s"PMethod");
+//    println(s"---------------------------");
+//    println(s"args ${args}");
+//    println(s"returns ${returns}");
+//    println(s"pres ${pres}");
+//    println(s"posts ${posts}");
+//    println(s"body ${body}");
+//    println(s"keyword pos: ${keyword.pos}");
     showAnnotations(annotations, ctx) <@@> show(keyword, ctx) <+> show(idndef, ctx) <> show(args, ctx) <> showReturns(returns, ctx) <>
       showPresPosts(pres, posts, ctx) <> showBody(showOption(body, ctx), !(returns.isEmpty && pres.isEmpty && posts.isEmpty))
   }
