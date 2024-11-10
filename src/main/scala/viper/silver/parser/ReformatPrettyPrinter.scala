@@ -51,7 +51,7 @@ object ReformatPrettyPrinter extends FastPrettyPrinterBase  {
 
   def showAnnotations(annotations: Seq[PAnnotation], ctx: ReformatterContext): Cont = {
     if (annotations.isEmpty) {nil} else {
-      annotations.map(show(_, ctx)).foldLeft(nil)((acc, n) => acc <@@> n) <+> nil
+      annotations.map(show(_, ctx)).foldLeft(nil)((acc, n) => acc <@@> n)
     }
   }
 

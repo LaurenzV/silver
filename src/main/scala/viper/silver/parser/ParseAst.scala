@@ -1873,6 +1873,8 @@ case class PAnnotationsPosition(annotations: Seq[PAnnotation], pos: (FilePositio
 
 case class PAnnotation(at: PSym.At, key: PRawString, values: PGrouped.Paren[PDelimited[PStringLiteral, PSym.Comma]])(val pos: (Position, Position)) extends PNode with PPrettySubnodes {
   override def pretty: String = super.pretty + "\n"
+
+  override def reformat(ctx: ReformatterContext): Cont = show(at, ctx) <> show(key, ctx) <> show(values, ctx)
 }
 
 // Any unenclosed string (e.g. `hello`)
