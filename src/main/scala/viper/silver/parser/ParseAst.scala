@@ -236,14 +236,12 @@ trait PIdentifier extends PLeaf {
   override def display = name
 }
 
-case class PComment(content: String, block: Boolean)(val pos: (FilePosition, FilePosition)) extends PLeaf {
-  override def display: String = if (block) {
+case class PComment(content: String, block: Boolean) {
+  def display: String = if (block) {
     s"/*$content*/"
   } else  {
     s"//$content"
   }
-
-  override def reformat(ctx: ReformatterContext): Cont = text(display)
 }
 
 case class PIdnDef(name: String)(val pos: (Position, Position)) extends PNode with PIdentifier {
@@ -1820,7 +1818,7 @@ trait PNoSpecsFunction extends PAnyFunction {
 ///////////////////////////////////////////////////////////////////////////
 // Program Members
 
-case class PProgram(imported: Seq[PProgram], members: Seq[PMember])(val pos: (Position, Position), val localErrors: Seq[ParseReport], var comments: Seq[PComment], var offsets: Seq[Int], var rawProgram: String) extends PNode {
+case class PProgram(imported: Seq[PProgram], members: Seq[PMember])(val pos: (Position, Position), val localErrors: Seq[ParseReport], var offsets: Seq[Int], var rawProgram: String) extends PNode {
   val imports: Seq[PImport] = members.collect { case i: PImport => i } ++ imported.flatMap(_.imports)
   val macros: Seq[PDefine] = members.collect { case m: PDefine => m } ++ imported.flatMap(_.macros)
   val domains: Seq[PDomain] = members.collect { case d: PDomain => d } ++ imported.flatMap(_.domains)
@@ -1839,13 +1837,8 @@ case class PProgram(imported: Seq[PProgram], members: Seq[PMember])(val pos: (Po
   }
 
   override def reformat(ctx: ReformatterContext): Cont = {
-    val elements = (comments ++ members).sortBy(el => el.pos match {
-      case (slc: FilePosition, _) => (slc.line, slc.column)
-      case _ => (0, 0)
-    });
-    println(s"members: ${members}");
-    elements.map(show(_, ctx)).foldLeft(nil)((acc, n) => acc <@@> n)
-    // members.map(show(_, ctx)).foldLeft(nil)((acc, n) => acc <@@> n)
+      println(s"whole program ${this.members}");
+     members.map(show(_, ctx)).foldLeft(nil)((acc, n) => acc <@@> n)
   }
 
   // Pretty print members in a specific order
@@ -1854,14 +1847,14 @@ case class PProgram(imported: Seq[PProgram], members: Seq[PMember])(val pos: (Po
     all.map(_.map(_.pretty).mkString("\n")).mkString("\n")
   }
 
-  override def getExtraVals: Seq[Any] = Seq(pos, localErrors, comments, offsets, rawProgram)
+  override def getExtraVals: Seq[Any] = Seq(pos, localErrors, offsets, rawProgram)
 
-  def filterMembers(f: PMember => Boolean): PProgram = PProgram(imported.map(_.filterMembers(f)), members.filter(f))(pos, localErrors, comments, offsets, rawProgram)
-  def newImported(newImported: Seq[PProgram]): PProgram = if (newImported.isEmpty) this else PProgram(imported ++ newImported, members)(pos, localErrors, comments, offsets, rawProgram)
+  def filterMembers(f: PMember => Boolean): PProgram = PProgram(imported.map(_.filterMembers(f)), members.filter(f))(pos, localErrors, offsets, rawProgram)
+  def newImported(newImported: Seq[PProgram]): PProgram = if (newImported.isEmpty) this else PProgram(imported ++ newImported, members)(pos, localErrors, offsets, rawProgram)
 }
 
 object PProgram {
-  def error(error: ParseReport): PProgram = PProgram(Nil, Nil)((error.pos, error.pos), Seq(error), Nil, Nil, "")
+  def error(error: ParseReport): PProgram = PProgram(Nil, Nil)((error.pos, error.pos), Seq(error), Nil, "")
 }
 
 case class PImport(annotations: Seq[PAnnotation], imprt: PKw.Import, file: PStringLiteral)(val pos: (FilePosition, FilePosition)) extends PMember with PPrettySubnodes {
@@ -2060,6 +2053,4 @@ trait PExtender extends PNode {
   def translateExp(t: Translator): Exp = ???
 
   def translateType(t: Translator): Type = ???
-
-  override def reformat(ctx: ReformatterContext): Cont = ""
 }

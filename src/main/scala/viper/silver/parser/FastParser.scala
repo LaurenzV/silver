@@ -104,6 +104,22 @@ object FastParserCompanion {
       ).pos
   }
 
+  def lineComment[$: P]: P[PComment] = {
+    P(("//" ~~ CharsWhile(_ != '\n').?.! ~~ ("\n" | End)).map { content =>
+      PComment(content, false)
+    })
+  }
+
+  def blockComment[$: P]: P[PComment] = P(("/*" ~~ (!StringIn("*/") ~~ AnyChar).repX.! ~~ "*/").map { content =>
+    PComment(content, true)
+  })
+
+  def comment[$: P]: P[PComment] = lineComment | blockComment
+
+  def programComments[$: P]: P[Seq[PComment]] = {
+    P((!StringIn("//", "/*") ~~ AnyChar).repX ~~ comment).repX
+  }
+
   /**
     * A parser which matches leading whitespaces. See `LeadingWhitespace.lw` for more info. Can only be operated on in
     * restricted ways (e.g. `?`, `rep`, `|` or `map`), requiring that it is eventually appended to a normal parser (of type `P[V]`).
@@ -854,7 +870,7 @@ class FastParser {
     P(programMember.rep map (members => {
       val warnings = _warnings
       _warnings = Seq()
-      PProgram(Nil, members)(_, warnings, Nil, Nil, "")
+      PProgram(Nil, members)(_, warnings, Nil, "")
     })).pos
 
   def preambleImport[$: P]: P[PKw.Import => PAnnotationsPosition => PImport] = P(
@@ -938,22 +954,6 @@ class FastParser {
 
   def methodReturns[$: P]: P[PMethodReturns] = P((P(PKw.Returns) ~ argList(idnTypeBinding.map(PFormalReturnDecl(_)))) map (PMethodReturns.apply _).tupled).pos
 
-  def lineComment[$: P]: P[PComment] = {
-    P(("//" ~~ CharsWhile(_ != '\n').?.! ~~ ("\n" | End)).map { content =>
-      (pos: (FilePosition, FilePosition)) => PComment(content, false)(pos)
-    }).pos
-  }
-
-  def blockComment[$: P]: P[PComment] = P(("/*" ~~ (!StringIn("*/") ~~ AnyChar).repX.! ~~ "*/").map { content =>
-    (pos: (FilePosition, FilePosition)) => PComment(content, true)(pos)
-  }).pos
-
-  def comment[$: P]: P[PComment] = lineComment | blockComment
-
-  def programComments[$: P]: P[Seq[PComment]] = {
-    P((!StringIn("//", "/*") ~~ AnyChar).repX ~~ comment).repX
-  }
-
   def entireProgram[$: P]: P[PProgram] = P(Start ~ programDecl ~ End)
 
   def end[$: P]: P[Unit] = Pass ~ End
@@ -975,11 +975,6 @@ class FastParser {
       offset += line_length
     }
 
-    val comments = fastparse.parse(s, programComments(_)) match {
-      case Parsed.Success(value, _) => value
-      case _: Parsed.Failure => Seq()
-    }
-
     ////
     // Parsing
     ////
@@ -987,7 +982,6 @@ class FastParser {
     // Assume entire file is correct and try parsing it quickly
     fastparse.parse(s, entireProgram(_)) match {
       case Parsed.Success(value, _) => {
-        value.comments = comments;
         value.offsets = _line_offset;
         value.rawProgram = s;
         return value;
@@ -1039,7 +1033,7 @@ class FastParser {
     val warnings = _warnings
     _warnings = Nil
     val pos = (FilePosition(lineCol.getPos(0)), FilePosition(lineCol.getPos(res.get.index)))
-    PProgram(Nil, members)(pos, errors ++ warnings, Nil, Nil, "");
+    PProgram(Nil, members)(pos, errors ++ warnings, Nil, "");
   }
 
   object ParserExtension extends ParserPluginTemplate {

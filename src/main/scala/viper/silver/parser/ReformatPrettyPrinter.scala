@@ -1,8 +1,10 @@
 package viper.silver.parser
 
+import fastparse.Parsed
 import viper.silver.ast.pretty.FastPrettyPrinter.Cont
 import viper.silver.ast.{FilePosition, HasLineColumn, LineColumnPosition, Position}
 import viper.silver.ast.pretty.FastPrettyPrinterBase
+import viper.silver.parser.FastParserCompanion.programComments
 import viper.silver.parser.PSym.Brace
 import viper.silver.plugin.standard.adt.{PAdt, PAdtConstructor, PAdtFieldDecl, PAdtSeq}
 
@@ -86,15 +88,22 @@ object ReformatPrettyPrinter extends FastPrettyPrinterBase  {
     val trivia = r match {
       case p: PLeaf => {
         val trivia = ctx.getTrivia(p.pos);
-        println(s"cur: ${ctx.currentPosition}, new: ${p.pos}")
-        println(s"trivia: ${trivia}")
+//        println(s"cur: ${ctx.currentPosition}, new: ${p.pos}")
+//        println(s"trivia: ${trivia}")
         ctx.currentPosition = p.pos;
-        text(trivia)
+        trivia
       };
-      case _ => nil
+      case _ => ""
     }
 
-    r.reformat(ctx)
+    val comments: Seq[PComment] = fastparse.parse(trivia, programComments(_)) match {
+      case Parsed.Success(value, _) => value
+      case _: Parsed.Failure => Seq()
+    }
+
+    val formattedComments = if (comments.isEmpty) nil else comments.map(a => text(a.display))reduce(_ <> linebreak <> _)
+
+    formattedComments <@@> r.reformat(ctx)
   }
 
   def showAny(n: Any, ctx: ReformatterContext): Cont = {
