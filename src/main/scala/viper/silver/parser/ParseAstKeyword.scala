@@ -308,7 +308,7 @@ trait PSymbol extends PReservedString with Reformattable {
   def symbol: String
   override def token = symbol
 
-  override def reformat(ctx: ReformatterContext): Cont =  text(symbol)
+  override def reformat(ctx: ReformatterContext): Cont = text(symbol)
 }
 
 trait PSymbolLang extends PSymbol

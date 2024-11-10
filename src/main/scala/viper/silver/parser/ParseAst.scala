@@ -40,8 +40,6 @@ trait PNode extends Where with Product with Rewritable with HasExtraValList with
   /* Should output something that can be displayed to the user. */
   def pretty: String
 
-  override def reformat(ctx: ReformatterContext): Cont = text(pretty)
-
   /** Returns a list of all direct sub-nodes of this node. */
   def subnodes: Seq[PNode] = PNode.children(this, this).flatMap(PNode.nodes(this, _)).toSeq
 
@@ -299,6 +297,8 @@ case class PIdnUseExp(name: String)(val pos: (Position, Position)) extends PIdnU
   }
 
   override def rename(newName: String) = PIdnUseExp(newName)(pos)
+
+  override def reformat(ctx: ReformatterContext): Cont = text(name)
 }
 case class PIdnRef[T <: PDeclarationInner](name: String)(val pos: (Position, Position))(implicit val ctag: scala.reflect.ClassTag[T]) extends PIdnUseName[T] {
   override def rename(newName: String): PIdnUse = PIdnRef(newName)(pos)
@@ -313,6 +313,8 @@ case class PIdnRef[T <: PDeclarationInner](name: String)(val pos: (Position, Pos
     case _ => None
   }
   override def getExtraVals: Seq[Any] = Seq(pos, ctag)
+
+  override def reformat(ctx: ReformatterContext): Cont = name
 }
 
 case class PVersionedIdnUseExp(name: String, version: String, separator: String = "@")(val pos: (Position, Position)) extends PIdnUseName[PTypedVarDecl] with PExp   {
@@ -329,6 +331,8 @@ case class PVersionedIdnUseExp(name: String, version: String, separator: String 
     typ = typ.substitute(ts)
     assert(typ.isGround)
   }
+
+  override def reformat(ctx: ReformatterContext): Cont = text(versionedName)
 }
 
 ///////////////////////////////////////////////////////////////////////////
@@ -337,7 +341,9 @@ case class PVersionedIdnUseExp(name: String, version: String, separator: String 
 trait PAnyFormalArgDecl extends PNode with PUnnamedTypedDeclaration with PPrettySubnodes
 
 /** The declaration of an argument to a domain function. Not a `PDeclaration` as it will never clash. */
-case class PDomainFunctionArg(name: Option[PIdnDef], c: Option[PSym.Colon], typ: PType)(val pos: (Position, Position)) extends PAnyFormalArgDecl
+case class PDomainFunctionArg(name: Option[PIdnDef], c: Option[PSym.Colon], typ: PType)(val pos: (Position, Position)) extends PAnyFormalArgDecl {
+  override def reformat(ctx: ReformatterContext): Cont = show(name, ctx) <> c <+@> typ
+}
 object PDomainFunctionArg {
   def apply(d: PIdnTypeBinding): PDomainFunctionArg = PDomainFunctionArg(Some(d.idndef), Some(d.c), d.typ)(d.pos)
 }
@@ -359,17 +365,23 @@ sealed trait PTypedVarDecl extends PTypedDeclaration with PDeclarationInner with
 sealed trait PAssignableVarDecl extends PTypedVarDecl
 
 /** Any argument to a method, function or predicate. */
-case class PFormalArgDecl(idndef: PIdnDef, c: PSym.Colon, typ: PType)(val pos: (Position, Position)) extends PAnyFormalArgDecl with PTypedVarDecl with PMemberDeclaration with PMemberUniqueDeclaration
+case class PFormalArgDecl(idndef: PIdnDef, c: PSym.Colon, typ: PType)(val pos: (Position, Position)) extends PAnyFormalArgDecl with PTypedVarDecl with PMemberDeclaration with PMemberUniqueDeclaration {
+  override def reformat(ctx: ReformatterContext): Cont = show(idndef, ctx) <> show(c, ctx) <+> show(typ, ctx)
+}
 object PFormalArgDecl {
   def apply(d: PIdnTypeBinding): PFormalArgDecl = PFormalArgDecl(d.idndef, d.c, d.typ)(d.pos)
 }
 /** The return arguments of methods. */
-case class PFormalReturnDecl(idndef: PIdnDef, c: PSym.Colon, typ: PType)(val pos: (Position, Position)) extends PAssignableVarDecl with PMemberDeclaration with PMemberUniqueDeclaration
+case class PFormalReturnDecl(idndef: PIdnDef, c: PSym.Colon, typ: PType)(val pos: (Position, Position)) extends PAssignableVarDecl with PMemberDeclaration with PMemberUniqueDeclaration {
+  override def reformat(ctx: ReformatterContext): Cont = show(idndef, ctx) <> show(c, ctx) <+> show(typ, ctx)
+}
 object PFormalReturnDecl {
   def apply(d: PIdnTypeBinding): PFormalReturnDecl = PFormalReturnDecl(d.idndef, d.c, d.typ)(d.pos)
 }
 
-case class PLogicalVarDecl(idndef: PIdnDef, c: PSym.Colon, typ: PType)(val pos: (Position, Position)) extends PTypedVarDecl with PLocalDeclaration with PScopeUniqueDeclaration
+case class PLogicalVarDecl(idndef: PIdnDef, c: PSym.Colon, typ: PType)(val pos: (Position, Position)) extends PTypedVarDecl with PLocalDeclaration with PScopeUniqueDeclaration {
+  override def reformat(ctx: ReformatterContext): Cont = show(idndef, ctx) <> show(c, ctx) <+> show(typ, ctx)
+}
 object PLogicalVarDecl {
   def apply(d: PIdnTypeBinding): PLogicalVarDecl = PLogicalVarDecl(d.idndef, d.c, d.typ)(d.pos)
 }
@@ -607,6 +619,8 @@ case class PMacroType(use: PCall) extends PType {
   override def isValidOrUndeclared: Boolean = ???
   override def substitute(ts: PTypeSubstitution): PType = ???
   override def subNodes: Seq[PType] = ???
+
+  override def reformat(ctx: ReformatterContext): Cont = show(use, ctx)
 }
 
 /** Type used for internal nodes (e.g. typing predicate accesses) - should not be
@@ -622,24 +636,28 @@ sealed trait PInternalType extends PType {
 case class PUnknown() extends PInternalType {
   override def isValidOrUndeclared = false
   override def pretty = "<error>"
+  override def reformat(ctx: ReformatterContext): Cont = pretty
 }
 
 case class PBoolImpureType() extends PInternalType {
   override def isValidOrUndeclared = true
   override def isPure: Boolean = false
   override def pretty = "<impure>"
+  override def reformat(ctx: ReformatterContext): Cont = pretty
 }
 case class PBoolWandType() extends PInternalType {
   override def isValidOrUndeclared = true
   override def isPure: Boolean = false
   override def umbrella: Option[PType] = Some(TypeHelper.Impure)
   override def pretty = "<wand>"
+  override def reformat(ctx: ReformatterContext): Cont = pretty
 }
 case class PBoolPredicateType() extends PInternalType {
   override def isValidOrUndeclared = true
   override def isPure: Boolean = false
   override def umbrella: Option[PType] = Some(TypeHelper.Impure)
   override def pretty = "<predicate>"
+  override def reformat(ctx: ReformatterContext): Cont = pretty
 }
 
 /** The type of a `PIdnUse` which refers to a function. Ensures that we get a
@@ -653,6 +671,14 @@ case class PFunctionType(argTypes: Seq[PType], resultType: PType) extends PInter
   override def pretty = {
     val argsPretty = argTypes.map(_.pretty).mkString("(", ", ", ")")
     s"$argsPretty: ${resultType.pretty}"
+  }
+
+  override def reformat(ctx: ReformatterContext): Cont = {
+    (if (argTypes.isEmpty)
+      text("()")
+    else
+      text("(") <> argTypes.map(show(_, ctx)).reduce(_ <> ", " <> _) <> text(")")) <>
+      text(": ") <> show(resultType, ctx)
   }
 }
 
@@ -686,6 +712,8 @@ trait PExp extends PNode with PPrettySubnodes {
 case class PAnnotatedExp(annotation: PAnnotation, e: PExp)(val pos: (Position, Position)) extends PExp {
   override def typeSubstitutions: collection.Seq[PTypeSubstitution] = e.typeSubstitutions
   override def forceSubstitution(ts: PTypeSubstitution): Unit = e.forceSubstitution(ts)
+
+  override def reformat(ctx: ReformatterContext): Cont = show(annotation, ctx) <@@> show(e)
 }
 
 trait PSubstitutionMap[S <: PSubstitutionMap[S]] {
@@ -1051,6 +1079,8 @@ case class PMagicWandExp(override val left: PExp, wand: PSymOp.Wand, override va
 case class PUnExp(op: PReserved[PUnaryOp], exp: PExp)(val pos: (Position, Position)) extends POpApp {
   override val args = Seq(exp)
   override val signatures = op.rs.signatures
+
+  override def reformat(ctx: ReformatterContext): Cont = show(op, ctx) <> show(exp, ctx)
 }
 
 case class PCondExp(cond: PExp, q: PSymOp.Question, thn: PExp, c: PSymOp.Colon, els: PExp)(val pos: (Position, Position)) extends POpApp {
@@ -1058,6 +1088,9 @@ case class PCondExp(cond: PExp, q: PSymOp.Question, thn: PExp, c: PSymOp.Colon, 
   val signatures: List[PTypeSubstitution] = List(
     Map(POpApp.pArgS(0) -> Bool, POpApp.pArgS(2) -> POpApp.pArg(1), POpApp.pResS -> POpApp.pArg(1))
   )
+
+  override def reformat(ctx: ReformatterContext): Cont = show(cond, ctx) <+> show(q, ctx) <+>
+    show(thn, ctx) <+> show(c, ctx) <+> show(els, ctx)
 }
 
 // Simple literals
@@ -1065,6 +1098,8 @@ sealed trait PSimpleLiteral extends PExp {
   override final val typeSubstitutions = Seq(PTypeSubstitution.id)
 
   def forceSubstitution(ts: PTypeSubstitution) = {}
+
+  override def reformat(ctx: ReformatterContext): Cont = pretty
 }
 
 sealed trait PConstantLiteral extends PSimpleLiteral {
@@ -1074,9 +1109,13 @@ sealed trait PConstantLiteral extends PSimpleLiteral {
 case class PIntLit(i: BigInt)(val pos: (Position, Position)) extends PSimpleLiteral with PLeaf {
   typ = Int
   override def display = i.toString()
+
+  override def reformat(ctx: ReformatterContext): Cont = text(i.toString)
 }
 
-case class PResultLit(result: PKw.Result)(val pos: (Position, Position)) extends PSimpleLiteral
+case class PResultLit(result: PKw.Result)(val pos: (Position, Position)) extends PSimpleLiteral {
+  override def reformat(ctx: ReformatterContext): Cont = show(result, ctx)
+}
 
 case class PBoolLit(keyword: PReserved[PKeywordConstant])(val pos: (Position, Position)) extends PConstantLiteral {
   def b: Boolean = keyword.rs.keyword match {
@@ -1107,18 +1146,24 @@ case class PFieldAccess(rcv: PExp, dot: PSymOp.Dot, idnref: PIdnRef[PFieldDecl])
       )
     case _ => List()
   }
+
+  override def reformat(ctx: ReformatterContext): Cont = show(rcv, ctx) <> show(dot, ctx) <> show(idnref, ctx)
 }
 
 case class PUnfolding(unfolding: PKwOp.Unfolding, acc: PAccAssertion, in: PKwOp.In, exp: PExp)(val pos: (Position, Position)) extends PHeapOpApp {
   override val args = Seq(acc, exp)
   override val signatures: List[PTypeSubstitution] =
     List(Map(POpApp.pArgS(0) -> Predicate, POpApp.pResS -> POpApp.pArg(1)))
+
+  override def reformat(ctx: ReformatterContext): Cont = show(unfolding, ctx) <+> show(acc, ctx) <+> show(in, ctx) <+> show(exp, ctx)
 }
 
 case class PApplying(applying: PKwOp.Applying, wand: PExp, in: PKwOp.In, exp: PExp)(val pos: (Position, Position)) extends PHeapOpApp {
   override val args = Seq(wand, exp)
   override val signatures: List[PTypeSubstitution] =
     List(Map(POpApp.pArgS(0) -> Wand, POpApp.pResS -> POpApp.pArg(1)))
+
+  override def reformat(ctx: ReformatterContext): Cont = show(applying, ctx) <+> show(wand, ctx) <+> show(in, ctx) <+> show(exp, ctx)
 }
 
 sealed trait PBinder extends PExp with PScope {
@@ -1151,7 +1196,10 @@ sealed trait PQuantifier extends PBinder {
   override def boundVars = vars.toSeq
 }
 
-case class PExists(keyword: PKw.Exists, vars: PDelimited[PLogicalVarDecl, PSym.Comma], c: PSym.ColonColon, triggers: Seq[PTrigger], body: PExp)(val pos: (Position, Position)) extends PQuantifier
+case class PExists(keyword: PKw.Exists, vars: PDelimited[PLogicalVarDecl, PSym.Comma], c: PSym.ColonColon, triggers: Seq[PTrigger], body: PExp)(val pos: (Position, Position)) extends PQuantifier {
+  override def reformat(ctx: ReformatterContext): Cont = show(keyword, ctx) <+>
+    show(vars, ctx) <+> show(c, ctx) <+> showSeq(triggers, ctx) <+> show(body, ctx)
+}
 
 case class PForall(keyword: PKw.Forall, vars: PDelimited[PLogicalVarDecl, PSym.Comma], c: PSym.ColonColon, triggers: Seq[PTrigger], body: PExp)(val pos: (Position, Position)) extends PQuantifier {
   override def reformat(ctx: ReformatterContext): Cont = show(keyword, ctx) <+> show(vars, ctx) <+>
@@ -1160,6 +1208,8 @@ case class PForall(keyword: PKw.Forall, vars: PDelimited[PLogicalVarDecl, PSym.C
 
 case class PForPerm(keyword: PKw.Forperm, vars: PDelimited[PLogicalVarDecl, PSym.Comma], accessRes: PGrouped[PSym.Bracket, PResourceAccess], c: PSym.ColonColon, body: PExp)(val pos: (Position, Position)) extends PQuantifier {
   val triggers: Seq[PTrigger] = Seq()
+
+  override def reformat(ctx: ReformatterContext): Cont = show(keyword, ctx) <+> show(vars, ctx) <+> show(accessRes, ctx) <+> show(c, ctx) <+> show(body, ctx)
 }
 
 /* Let-expressions `let x == e1 in e2` are represented by the nested structure
@@ -1182,12 +1232,17 @@ case class PLet(l: PKwOp.Let, variable: PIdnDef, eq: PSymOp.EqEq, exp: PGrouped.
     nestedScope.body.forceSubstitution(ts)
     typ = nestedScope.body.typ
   }
+
+  override def reformat(ctx: ReformatterContext): Cont = show(l, ctx) <+> show(variable, ctx) <+>
+    show(eq, ctx) <+> show(exp, ctx) <+> show(in, ctx) <+> show(nestedScope, ctx)
 }
 
 case class PLetNestedScope(body: PExp)(val pos: (Position, Position)) extends PTypedVarDecl with PLocalDeclaration with PScopeUniqueDeclaration {
   def outerLet: PLet = getAncestor[PLet].get
   override def idndef: PIdnDef = outerLet.variable
   override def typ: PType = outerLet.exp.inner.typ
+
+  override def reformat(ctx: ReformatterContext): Cont = show(body, ctx)
 }
 
 // [in,ex]
@@ -1198,6 +1253,9 @@ case class PInhaleExhaleExp(l: PSymOp.LBracket, in: PExp, c: PSymOp.Comma, ex: P
     Map(POpApp.pArgS(0) -> Bool, POpApp.pArgS(1) -> Bool, POpApp.pResS -> Bool),
     Map(POpApp.pArgS(0) -> Impure, POpApp.pArgS(1) -> Impure, POpApp.pResS -> Impure),
   )
+
+  override def reformat(ctx: ReformatterContext): Cont = show(l, ctx) <>
+    show(in, ctx) <> show(c, ctx) <+> show(ex, ctx) <> show(r, ctx)
 }
 
 case class PNoPerm(keyword: PKw.None)(val pos: (Position, Position)) extends PConstantLiteral {
