@@ -104,22 +104,25 @@ object FastParserCompanion {
       ).pos
   }
 
+  def space[$: P]: P[PSpace] = P(("\t" | " ") map {_ => PSpace() })
+
+  def newline[$: P]: P[PNewLine] = P((StringIn("\n\r") | "\n" | "\r") map {_ => PNewLine() })
+
   def lineComment[$: P]: P[PComment] = {
-    P(("//" ~~ CharsWhile(_ != '\n').? ~~ ("\n" | End)).!.map { content =>
+    P(("//" ~~ CharsWhile(_ != '\n').?.! ~~ ("\n" | End)).map { content =>
       PComment(content, false)
     })
   }
 
-  def blockComment[$: P]: P[PComment] = P(("/*" ~~ (!StringIn("*/") ~~ AnyChar).repX ~~ "*/").!.map { content =>
+  def blockComment[$: P]: P[PComment] = P(("/*" ~~ (!StringIn("*/") ~~ AnyChar).repX.! ~~ "*/").map { content =>
     PComment(content, true)
   })
 
   def comment[$: P]: P[PComment] = lineComment | blockComment
 
-  def programComments[$: P]: P[Seq[PComment]] = {
-    P((!StringIn("//", "/*") ~~ AnyChar).repX ~~ comment).repX
+  def programTrivia[$: P]: P[Seq[Trivia]] = {
+    P((space | newline | comment | (AnyChar.map(_ => POther()))).repX)
   }
-
   /**
     * A parser which matches leading whitespaces. See `LeadingWhitespace.lw` for more info. Can only be operated on in
     * restricted ways (e.g. `?`, `rep`, `|` or `map`), requiring that it is eventually appended to a normal parser (of type `P[V]`).

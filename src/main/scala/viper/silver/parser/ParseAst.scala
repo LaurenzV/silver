@@ -236,21 +236,6 @@ trait PIdentifier extends PLeaf {
   override def display = name
 }
 
-case class PComment(content: String, block: Boolean) extends Reformattable {
-  override def reformat(ctx: ReformatterContext): Cont = if (block) {
-    // Remove whitespace padding from block comments, because the indentation will be taken care of by the
-    // reformatter. However, in case the line start with a star, we want to keep a padding of one, so that
-    // the star is aligned with the first star in /**
-    content
-      .split("\n")
-      .map(_.trim)
-      .map(s => text(if (s.startsWith("*")) " " + s else s))
-      .reduce(_ <> linebreak <> _)
-  } else  {
-    text(content)
-  }
-}
-
 case class PIdnDef(name: String)(val pos: (Position, Position)) extends PNode with PIdentifier {
   override def reformat(ctx: ReformatterContext): Cont = text(name)
 }
@@ -1103,8 +1088,6 @@ sealed trait PSimpleLiteral extends PExp {
   override final val typeSubstitutions = Seq(PTypeSubstitution.id)
 
   def forceSubstitution(ts: PTypeSubstitution) = {}
-
-  override def reformat(ctx: ReformatterContext): Cont = pretty
 }
 
 sealed trait PConstantLiteral extends PSimpleLiteral {
@@ -1128,10 +1111,14 @@ case class PBoolLit(keyword: PReserved[PKeywordConstant])(val pos: (Position, Po
     case PKw.False.keyword => false
   }
   typ = Bool
+
+  override def reformat(ctx: ReformatterContext): Cont = show(keyword, ctx)
 }
 
 case class PNullLit(keyword: PKw.Null)(val pos: (Position, Position)) extends PConstantLiteral {
   typ = Ref
+
+  override def reformat(ctx: ReformatterContext): Cont = show(keyword, ctx)
 }
 
 sealed trait PHeapOpApp extends POpApp
@@ -1265,10 +1252,14 @@ case class PInhaleExhaleExp(l: PSymOp.LBracket, in: PExp, c: PSymOp.Comma, ex: P
 
 case class PNoPerm(keyword: PKw.None)(val pos: (Position, Position)) extends PConstantLiteral {
   typ = Perm
+
+  override def reformat(ctx: ReformatterContext): Cont = show(keyword, ctx)
 }
 
 case class PFullPerm(keyword: PKw.Write)(val pos: (Position, Position)) extends PConstantLiteral {
   typ = Perm
+
+  override def reformat(ctx: ReformatterContext): Cont = show(keyword, ctx)
 }
 object PFullPerm {
   def implied(): PFullPerm = PFullPerm(PReserved(PKw.Write)(NoPosition, NoPosition))(NoPosition, NoPosition)
@@ -1276,10 +1267,14 @@ object PFullPerm {
 
 case class PWildcard(keyword: PKw.Wildcard)(val pos: (Position, Position)) extends PConstantLiteral {
   typ = Perm
+
+  override def reformat(ctx: ReformatterContext): Cont = show(keyword, ctx)
 }
 
 case class PEpsilon(keyword: PKw.Epsilon)(val pos: (Position, Position)) extends PConstantLiteral {
   typ = Perm
+
+  override def reformat(ctx: ReformatterContext): Cont = show(keyword, ctx)
 }
 
 trait PCallKeyword extends POpApp {
@@ -1653,7 +1648,10 @@ case class PIf(keyword: PReserved[PKeywordIf], cond: PGrouped.Paren[PExp], thn: 
     showBody(show(thn, ctx), true) <+@> showBody(showOption(els, ctx), false)
 }
 case class PElse(k: PKw.Else, els: PSeqn)(val pos: (Position, Position)) extends PStmt with PIfContinuation {
-  override def reformat(ctx: ReformatterContext): Cont = show(k, ctx) <+> showBody(show(els, ctx), false)
+  override def reformat(ctx: ReformatterContext): Cont = {
+    println("reached PElse!");
+    show(k, ctx) <+> showBody(show(els, ctx), false)
+  }
 }
 
 case class PWhile(keyword: PKw.While, cond: PGrouped.Paren[PExp], invs: PDelimited[PSpecification[PKw.InvSpec], Option[PSym.Semi]], body: PSeqn)(val pos: (Position, Position)) extends PStmt {
@@ -2060,4 +2058,27 @@ trait PExtender extends PNode {
   def translateExp(t: Translator): Exp = ???
 
   def translateType(t: Translator): Type = ???
+}
+
+// Trivia (comments, whitespaces)
+trait Trivia extends Reformattable
+
+case class POther() extends Trivia {
+  override def reformat(ctx: ReformatterContext): Cont = ""
+}
+
+case class PSpace() extends Trivia {
+  override def reformat(ctx: ReformatterContext): Cont = space
+}
+
+case class PNewLine() extends Trivia {
+  override def reformat(ctx: ReformatterContext): Cont = linebreak
+}
+
+case class PComment(content: String, block: Boolean) extends Trivia {
+  override def reformat(ctx: ReformatterContext): Cont = if (block) {
+    text("/*") <> content <> text("*/") <> linebreak
+  } else  {
+    text("//") <> text(content) <> linebreak
+  }
 }

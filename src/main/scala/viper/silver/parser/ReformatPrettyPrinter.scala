@@ -4,10 +4,10 @@ import fastparse.Parsed
 import viper.silver.ast.pretty.FastPrettyPrinter.Cont
 import viper.silver.ast.{FilePosition, HasLineColumn, LineColumnPosition, Position}
 import viper.silver.ast.pretty.FastPrettyPrinterBase
-import viper.silver.parser.FastParserCompanion.programComments
-import viper.silver.parser.PSym.Brace
+import viper.silver.parser.FastParserCompanion.programTrivia
 import viper.silver.plugin.standard.adt.{PAdt, PAdtConstructor, PAdtFieldDecl, PAdtSeq}
 
+import scala.collection.mutable.ArrayBuffer
 import scala.runtime.Nothing$
 
 trait Reformattable extends FastPrettyPrinterBase {
@@ -28,7 +28,7 @@ class ReformatterContext(val program: String, val offsets: Seq[Int]) {
         val c_offset = getByteOffset(c);
         val p_offset = getByteOffset(p);
         if (c_offset <= p_offset) {
-          program.substring(c_offset, p_offset).trim
+          program.substring(c_offset, p_offset)
         } else {
           ""
         }
@@ -88,22 +88,30 @@ object ReformatPrettyPrinter extends FastPrettyPrinterBase  {
     val trivia = r match {
       case p: PLeaf => {
         val trivia = ctx.getTrivia(p.pos);
-//        println(s"cur: ${ctx.currentPosition}, new: ${p.pos}")
-//        println(s"trivia: ${trivia}")
+        println(s"cur_type: ${r.getClass}")
+        println(s"cur: ${ctx.currentPosition}, new: ${p.pos}")
+        println(s"trivia: (${trivia}), ${trivia.length}")
         ctx.currentPosition = p.pos;
         trivia
       };
       case _ => ""
     }
 
-    val comments: Seq[PComment] = fastparse.parse(trivia, programComments(_)) match {
-      case Parsed.Success(value, _) => value
+    val comments: Seq[Trivia] = fastparse.parse(trivia, programTrivia(_)) match {
+      case Parsed.Success(value, _) => {
+        println(s"Length: ${value.length}")
+        value
+      }
       case _: Parsed.Failure => Seq()
     }
 
-    val formattedComments = if (comments.isEmpty) nil else comments.map(show(_, ctx)).reduce(_ <> _)
+    val reduced = comments.filter({
+      case _: PComment => true
+      case _ => false
+    })
+      .foldLeft(nil)(_ <@@@> show(_, ctx));
 
-    formattedComments <@@> r.reformat(ctx)
+    reduced <@@@> r.reformat(ctx)
   }
 
   def showAny(n: Any, ctx: ReformatterContext): Cont = {
