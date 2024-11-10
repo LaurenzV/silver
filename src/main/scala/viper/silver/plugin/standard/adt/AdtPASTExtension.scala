@@ -179,6 +179,8 @@ case class PAdtDeriving(k: PReserved[PDerivesKeyword.type], derivingInfos: PAdtS
 
     None
   }
+
+  override def reformat(ctx: ReformatterContext): Cont = show(k, ctx) <+> show(derivingInfos, ctx)
 }
 
 case class PAdtWithout(k: PReserved[PWithoutKeyword.type], blockList: PDelimited[PIdnRef[PAdtFieldDecl], PSym.Comma])(val pos: (Position, Position)) extends PExtender with PPrettySubnodes with PAdtChild {
@@ -191,6 +193,8 @@ case class PAdtWithout(k: PReserved[PWithoutKeyword.type], blockList: PDelimited
     })
     None
   }
+
+  override def reformat(ctx: ReformatterContext): Cont = show(k, ctx) <+> show(blockList, ctx)
 }
 
 case class PAdtDerivingInfo(idndef: PIdnDef, param: Option[PGrouped[PSym.Bracket, PType]], without: Option[PAdtWithout])(val pos: (Position, Position)) extends PExtender with PPrettySubnodes {
@@ -200,6 +204,8 @@ case class PAdtDerivingInfo(idndef: PIdnDef, param: Option[PGrouped[PSym.Bracket
     without map (_.typecheck(t, n))
     None
   }
+
+  override def reformat(ctx: ReformatterContext): Cont = show(idndef, ctx) <+> showOption(param, ctx)
 }
 
 case class PAdtType(adt: PIdnRef[PAdt], args: Option[PDelimited.Comma[PSym.Bracket, PType]])
@@ -470,6 +476,9 @@ case class PConstructorCall(idnref: PIdnRef[PAdtConstructor], callArgs: PDelimit
       case _ => sys.error("type unification error - should report and not crash")
     }
   }
+
+  override def reformat(ctx: ReformatterContext): Cont = show(idnref, ctx) <>
+    show(callArgs, ctx) <> showOption(typeAnnotated, ctx)
 }
 
 case class PDestructorCall(rcv: PExp, dot: PReserved[PDiscDot.type], idnref: PIdnRef[PAdtFieldDecl])
@@ -502,6 +511,8 @@ case class PDestructorCall(rcv: PExp, dot: PReserved[PDiscDot.type], idnref: PId
       case _ => sys.error("type unification error - should report and not crash")
     }
   }
+
+  override def reformat(ctx: ReformatterContext): Cont = show(rcv, ctx) <> show(dot, ctx) <> show(idnref, ctx)
 }
 
 case object PIsKeyword extends PKwOp("is") {
@@ -538,4 +549,6 @@ case class PDiscriminatorCall(rcv: PExp, dot: PReserved[PDiscDot.type], is: PRes
       case _ => sys.error("type unification error - should report and not crash")
     }
   }
+
+  override def reformat(ctx: ReformatterContext): Cont = show(rcv, ctx) <> show(dot, ctx) <> show(is, ctx) <> show(idnref, ctx)
 }

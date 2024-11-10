@@ -2,9 +2,11 @@ package viper.silver.parser
 
 import viper.silver.ast.pretty.FastPrettyPrinter.Cont
 import viper.silver.ast.{FilePosition, HasLineColumn, LineColumnPosition, Position}
-import viper.silver.ast.pretty.{FastPrettyPrinterBase}
+import viper.silver.ast.pretty.FastPrettyPrinterBase
 import viper.silver.parser.PSym.Brace
 import viper.silver.plugin.standard.adt.{PAdt, PAdtConstructor, PAdtFieldDecl, PAdtSeq}
+
+import scala.runtime.Nothing$
 
 trait Reformattable extends FastPrettyPrinterBase {
   def reformat(ctx: ReformatterContext): Cont
@@ -100,6 +102,8 @@ object ReformatPrettyPrinter extends FastPrettyPrinterBase  {
       case p: Reformattable => show(p, ctx)
       case p: Option[Any] => showOption(p, ctx)
       case p: Seq[Any] => showSeq(p, ctx)
+      case p: Right[Any, Any] => showAny(p.value, ctx)
+      case p: Left[Any, Any] => showAny(p.value, ctx)
     }
   }
 
