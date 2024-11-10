@@ -236,11 +236,18 @@ trait PIdentifier extends PLeaf {
   override def display = name
 }
 
-case class PComment(content: String, block: Boolean) {
-  def display: String = if (block) {
-    s"/*$content*/"
+case class PComment(content: String, block: Boolean) extends Reformattable {
+  override def reformat(ctx: ReformatterContext): Cont = if (block) {
+    // Remove whitespace padding from block comments, because the indentation will be taken care of by the
+    // reformatter. However, in case the line start with a star, we want to keep a padding of one, so that
+    // the star is aligned with the first star in /**
+    content
+      .split("\n")
+      .map(_.trim)
+      .map(s => text(if (s.startsWith("*")) " " + s else s))
+      .reduce(_ <> linebreak <> _)
   } else  {
-    s"//$content"
+    text(content)
   }
 }
 

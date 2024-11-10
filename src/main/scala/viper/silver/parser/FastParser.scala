@@ -105,12 +105,12 @@ object FastParserCompanion {
   }
 
   def lineComment[$: P]: P[PComment] = {
-    P(("//" ~~ CharsWhile(_ != '\n').?.! ~~ ("\n" | End)).map { content =>
+    P(("//" ~~ CharsWhile(_ != '\n').? ~~ ("\n" | End)).!.map { content =>
       PComment(content, false)
     })
   }
 
-  def blockComment[$: P]: P[PComment] = P(("/*" ~~ (!StringIn("*/") ~~ AnyChar).repX.! ~~ "*/").map { content =>
+  def blockComment[$: P]: P[PComment] = P(("/*" ~~ (!StringIn("*/") ~~ AnyChar).repX ~~ "*/").!.map { content =>
     PComment(content, true)
   })
 

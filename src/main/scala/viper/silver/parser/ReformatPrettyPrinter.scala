@@ -101,7 +101,7 @@ object ReformatPrettyPrinter extends FastPrettyPrinterBase  {
       case _: Parsed.Failure => Seq()
     }
 
-    val formattedComments = if (comments.isEmpty) nil else comments.map(a => text(a.display))reduce(_ <> linebreak <> _)
+    val formattedComments = if (comments.isEmpty) nil else comments.map(show(_, ctx)).reduce(_ <> _)
 
     formattedComments <@@> r.reformat(ctx)
   }
