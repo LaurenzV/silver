@@ -9,7 +9,7 @@ package viper.silver.parser
 
 import viper.silver.ast
 import viper.silver.ast.{FilePosition, HasLineColumn, Position}
-import viper.silver.parser.ReformatPrettyPrinter.{nil, show, showAnnotations, showAny, showBody, showInvs, showOption, showPresPosts, showReturns, showSeq, text}
+import viper.silver.parser.ReformatPrettyPrinter.{formatTrivia, nil, show, showAnnotations, showAny, showBody, showInvs, showOption, showPresPosts, showReturns, showSeq, text}
 
 import java.util.concurrent.atomic.{AtomicInteger, AtomicLong}
 import viper.silver.ast.utility.Visitor
@@ -1843,7 +1843,9 @@ case class PProgram(imported: Seq[PProgram], members: Seq[PMember])(val pos: (Po
 
   override def reformat(ctx: ReformatterContext): Cont = {
       println(s"whole program ${this.members}");
-     members.map(show(_, ctx)).foldLeft(nil)((acc, n) => acc <@@> n)
+     members.map(show(_, ctx)).foldLeft(nil)((acc, n) => acc <@@> n) <>
+     // Don't forget comments that appear after any nodes!
+       formatTrivia(ctx.getTriviaByByteOffset(rawProgram.length), ctx)
   }
 
   // Pretty print members in a specific order
