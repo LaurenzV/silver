@@ -1887,13 +1887,9 @@ case class PDomain(annotations: Seq[PAnnotation], domain: PKw.Domain, idndef: PI
   def typVarsSeq: Seq[PTypeVarDecl] = typVars.map(_.inner.toSeq).getOrElse(Nil)
 
   override def reformat(ctx: ReformatterContext): Cont = {
-    val interp = if (interpretations.isEmpty) {
-      nil
-    } else  {
-      nest(defaultIndent, line <> showOption(interpretations, ctx))
-    }
     showAnnotations(annotations, ctx) <@@> show(domain, ctx) <+>
-      show(idndef, ctx) <> showOption(typVars, ctx) <> interp <>
+      show(idndef, ctx) <> showOption(typVars, ctx) <>
+      (if (interpretations.isEmpty) nil else nest(defaultIndent, linebreak <> showOption(interpretations, ctx))) <>
       showBody(show(members, ctx), !interpretations.isEmpty)
   }
 }
@@ -1951,7 +1947,7 @@ case class PAxiom1(annotations: Seq[PAnnotation], axiom: PKw.Axiom, idndef: Opti
 }
 case class PDomainMembers1(members: Seq[PDomainMember1])(val pos: (Position, Position)) extends PNode with PPrettySubnodes {
   override def reformat(ctx: ReformatterContext): Cont = if (members.isEmpty) nil else members.map(m => show(m, ctx))
-    .reduce(_ <> linebreak <> linebreak <> _)
+    .reduce(_ <> linebreak <> _)
 }
 
 

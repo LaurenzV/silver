@@ -7,6 +7,8 @@ import viper.silver.ast.{HasLineColumn, LineColumnPosition, Position}
 import viper.silver.parser.FastParserCompanion.programTrivia
 import viper.silver.plugin.standard.adt.PAdtConstructor
 
+import scala.util.control.Breaks.{break, breakable}
+
 trait Reformattable extends FastPrettyPrinterBase {
   def reformat(ctx: ReformatterContext): Cont
 }
@@ -106,7 +108,35 @@ object ReformatPrettyPrinter extends FastPrettyPrinterBase {
   def show(r: Reformattable, ctx: ReformatterContext): Cont = {
     val trivia = r match {
       case p: PLeaf => {
-        formatTrivia(ctx.getTrivia(p.pos), ctx)
+        val trivia = ctx.getTrivia(p.pos);
+        val findNewlines = (trivia: Seq[Trivia]) => {
+          var count = 0;
+          breakable {
+            for (el <- trivia) {
+              el match {
+                case _: PComment => break
+                case _: PNewLine => count += 1
+                case _ =>
+              }
+            }
+          }
+
+          if (count > 1) linebreak else nil
+        }
+
+        val lw = findNewlines(trivia);
+        val tw = findNewlines(trivia.reverse);
+        val hasComment = trivia exists {
+          case _: PComment => true
+          case _ => false
+        }
+
+        if (hasComment) {
+          lw <> formatTrivia(trivia, ctx) <> tw
+        } else  {
+          lw
+        }
+
       };
       case _ => nil
     }
