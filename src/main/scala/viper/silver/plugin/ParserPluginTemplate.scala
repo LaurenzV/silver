@@ -115,7 +115,7 @@ trait ParserPluginTemplate {
     override def typecheck(t: TypeChecker, n: NameAnalyser): Option[Seq[String]] = super.typecheck(t, n)
     // The translator function to translate the PAst node corresponding to the Ast node
     override def translateExp(t: Translator): Exp = super.translateExp(t)
-    override def reformat(ctx: ReformatterContext): Cont = ""
+    override def reformatExp(ctx: ReformatterContext): Cont = ""
   }
 
   /**

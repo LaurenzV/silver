@@ -477,7 +477,7 @@ case class PConstructorCall(idnref: PIdnRef[PAdtConstructor], callArgs: PDelimit
     }
   }
 
-  override def reformat(ctx: ReformatterContext): Cont = show(idnref, ctx) <>
+  override def reformatExp(ctx: ReformatterContext): Cont = show(idnref, ctx) <>
     show(callArgs, ctx) <> showOption(typeAnnotated, ctx)
 }
 
@@ -512,7 +512,7 @@ case class PDestructorCall(rcv: PExp, dot: PReserved[PDiscDot.type], idnref: PId
     }
   }
 
-  override def reformat(ctx: ReformatterContext): Cont = show(rcv, ctx) <> show(dot, ctx) <> show(idnref, ctx)
+  override def reformatExp(ctx: ReformatterContext): Cont = show(rcv, ctx) <> show(dot, ctx) <> show(idnref, ctx)
 }
 
 case object PIsKeyword extends PKwOp("is") {
@@ -550,5 +550,5 @@ case class PDiscriminatorCall(rcv: PExp, dot: PReserved[PDiscDot.type], is: PRes
     }
   }
 
-  override def reformat(ctx: ReformatterContext): Cont = show(rcv, ctx) <> show(dot, ctx) <> show(is, ctx) <> show(idnref, ctx)
+  override def reformatExp(ctx: ReformatterContext): Cont = show(rcv, ctx) <> show(dot, ctx) <> show(is, ctx) <> show(idnref, ctx)
 }

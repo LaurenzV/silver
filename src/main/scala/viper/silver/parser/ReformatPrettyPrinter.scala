@@ -13,6 +13,10 @@ trait Reformattable extends FastPrettyPrinterBase {
   def reformat(ctx: ReformatterContext): Cont
 }
 
+trait ReformattableExpression extends FastPrettyPrinterBase {
+  def reformatExp(ctx: ReformatterContext): Cont
+}
+
 class ReformatterContext(val program: String, val offsets: Seq[Int]) {
   var currentOffset: Int = 0
 
