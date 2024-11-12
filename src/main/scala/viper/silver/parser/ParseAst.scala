@@ -1047,9 +1047,10 @@ class PBinExp(val left: PExp, val op: PReserved[PBinaryOp], val right: PExp)(val
   override def toString(): String = s"PBinExp($left,$op,$right)"
 
   override def reformat(ctx: ReformatterContext): Cont = {
-    val inner = show(left, ctx) <+> show(op, ctx) <+> show(right, ctx)
+    val inner = group(show(left, ctx) <@> show(op, ctx) <+> show(right, ctx))
 
     if (!brackets.isEmpty) {
+      // TODO: Figure ou whether we can somehow directly render brackets
       text("(") <> inner <> text(")")
     } else  {
       inner
@@ -1079,8 +1080,8 @@ case class PCondExp(cond: PExp, q: PSymOp.Question, thn: PExp, c: PSymOp.Colon, 
     Map(POpApp.pArgS(0) -> Bool, POpApp.pArgS(2) -> POpApp.pArg(1), POpApp.pResS -> POpApp.pArg(1))
   )
 
-  override def reformat(ctx: ReformatterContext): Cont = show(cond, ctx) <+> show(q, ctx) <+>
-    show(thn, ctx) <+> show(c, ctx) <+> show(els, ctx)
+  override def reformat(ctx: ReformatterContext): Cont = show(cond, ctx) <+> show(q, ctx) <>
+    group(line <> show(thn, ctx) <+> show(c, ctx) <@> show(els, ctx))
 }
 
 // Simple literals
