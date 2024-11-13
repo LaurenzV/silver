@@ -701,10 +701,9 @@ trait PExp extends PNode with PPrettySubnodes with ReformattableExpression {
   override def reformat(ctx: ReformatterContext): Cont = {
     // Unfortunately, we cannot just show exp.brackets, because then we end up in an
     // endless recursion. So instead, we need to add them manually.
-    if (!brackets.isEmpty) {
-      parens(this.reformatExp(ctx))
-    } else  {
-      this.reformatExp(ctx)
+    brackets match {
+      case Some(b) => show(b.l, ctx) <> this.reformatExp(ctx) <> show(b.r, ctx)
+      case None => this.reformatExp(ctx)
     }
   }
 }
