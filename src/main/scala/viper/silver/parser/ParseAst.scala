@@ -1179,6 +1179,10 @@ case class PAsserting(asserting: PKwOp.Asserting, a: PExp, in: PKwOp.In, exp: PE
   override val args = Seq(a, exp)
   override val signatures: List[PTypeSubstitution] =
     List(Map(POpApp.pArgS(0) -> Impure, POpApp.pResS -> POpApp.pArg(1)))
+
+  override def reformatExp(ctx: ReformatterContext): Cont = show(asserting, ctx) <+>
+    nest(defaultIndent, group(line <> show(a, ctx))) <+>
+    show(in, ctx) <> nest(defaultIndent, group(line <> show(exp, ctx)))
 }
 
 sealed trait PBinder extends PExp with PScope {
