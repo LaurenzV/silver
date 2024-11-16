@@ -15,6 +15,7 @@ import java.util.concurrent.atomic.{AtomicInteger, AtomicLong}
 import viper.silver.ast.utility.Visitor
 import viper.silver.ast.utility.rewriter.{HasExtraValList, HasExtraVars, Rewritable, StrategyBuilder}
 import viper.silver.ast.{Exp, Member, NoPosition, SourcePosition, Stmt, Type}
+import viper.silver.parser.PSymOp.{Iff, Implies}
 import viper.silver.parser.TypeHelper._
 import viper.silver.verifier.ParseReport
 
@@ -698,11 +699,19 @@ trait PExp extends PNode with PPrettySubnodes with ReformattableExpression {
     case None => super.pretty
   }
 
+  // Note: We override the `reformat` for all expressions here, classes implementing this trait
+  // should not override it. Instead, they should implement the `reformatExp` method.
   override def reformat(ctx: ReformatterContext): Cont = {
     // Unfortunately, we cannot just show exp.brackets, because then we end up in an
     // endless recursion. So instead, we need to add them manually.
     brackets match {
-      case Some(b) => show(b.l, ctx) <> this.reformatExp(ctx) <> show(b.r, ctx)
+      case Some(b) => {
+        if (b.l.isInstanceOf[PSym.Brace]) {
+          nest(defaultIndent, group(show(b.l, ctx) <@> this.reformatExp(ctx) <@> show(b.r, ctx)))
+        } else {
+          show(b.l, ctx) <> this.reformatExp(ctx) <> show(b.r, ctx)
+        }
+      }
       case None => this.reformatExp(ctx)
     }
   }
@@ -1022,9 +1031,8 @@ case class PCall(idnref: PIdnRef[PCallable], callArgs: PDelimited.Comma[PSym.Par
     args.foreach(_.forceSubstitution(ts))
   }
 
-  // TODO: How does typeAnnotated need to be added?
   override def reformatExp(ctx: ReformatterContext): Cont = show(idnref, ctx) <>
-    show(callArgs, ctx)
+    show(callArgs, ctx) <> typeAnnotated.map(e => show(e._1, ctx) <+> show(e._2, ctx)).getOrElse(nil)
 }
 
 class PBinExp(val left: PExp, val op: PReserved[PBinaryOp], val right: PExp)(val pos: (Position, Position)) extends POpApp {
@@ -1056,7 +1064,12 @@ class PBinExp(val left: PExp, val op: PReserved[PBinaryOp], val right: PExp)(val
   override def toString(): String = s"PBinExp($left,$op,$right)"
 
   override def reformatExp(ctx: ReformatterContext): Cont = {
-    group(show(left, ctx) <@> show(op, ctx) <+> show(right, ctx))
+    op.rs match {
+      case Iff | Implies =>
+        group(show(left, ctx) <+> show(op, ctx) <> nest(defaultIndent, line <> show(right, ctx)))
+      case _ => group(show(left, ctx) <@> show(op, ctx) <+> show(right, ctx))
+    }
+
   }
 }
 
@@ -1083,7 +1096,8 @@ case class PCondExp(cond: PExp, q: PSymOp.Question, thn: PExp, c: PSymOp.Colon, 
   )
 
   override def reformatExp(ctx: ReformatterContext): Cont = show(cond, ctx) <+> show(q, ctx) <>
-    group(line <> show(thn, ctx) <+> show(c, ctx) <@> show(els, ctx))
+    nest(defaultIndent, group(line <> show(thn, ctx) <+>
+      show(c, ctx) <> nest(defaultIndent, group(line <> show(els, ctx)))))
 }
 
 // Simple literals
@@ -1150,7 +1164,7 @@ case class PUnfolding(unfolding: PKwOp.Unfolding, acc: PAccAssertion, in: PKwOp.
   override val signatures: List[PTypeSubstitution] =
     List(Map(POpApp.pArgS(0) -> Predicate, POpApp.pResS -> POpApp.pArg(1)))
 
-  override def reformatExp(ctx: ReformatterContext): Cont = show(unfolding, ctx) <+> show(acc, ctx) <+> show(in, ctx) <+> show(exp, ctx)
+  override def reformatExp(ctx: ReformatterContext): Cont = show(unfolding, ctx) <+> show(acc, ctx) <+> show(in, ctx) <> nest(defaultIndent, group(line <> show(exp, ctx)))
 }
 
 case class PApplying(applying: PKwOp.Applying, wand: PExp, in: PKwOp.In, exp: PExp)(val pos: (Position, Position)) extends PHeapOpApp {
@@ -1158,7 +1172,7 @@ case class PApplying(applying: PKwOp.Applying, wand: PExp, in: PKwOp.In, exp: PE
   override val signatures: List[PTypeSubstitution] =
     List(Map(POpApp.pArgS(0) -> Wand, POpApp.pResS -> POpApp.pArg(1)))
 
-  override def reformatExp(ctx: ReformatterContext): Cont = show(applying, ctx) <+> show(wand, ctx) <+> show(in, ctx) <+> show(exp, ctx)
+  override def reformatExp(ctx: ReformatterContext): Cont = show(applying, ctx) <+> show(wand, ctx) <+> show(in, ctx) <> nest(defaultIndent, group(line <> show(exp, ctx)))
 }
 
 sealed trait PBinder extends PExp with PScope {
@@ -1198,7 +1212,7 @@ case class PExists(keyword: PKw.Exists, vars: PDelimited[PLogicalVarDecl, PSym.C
 
 case class PForall(keyword: PKw.Forall, vars: PDelimited[PLogicalVarDecl, PSym.Comma], c: PSym.ColonColon, triggers: Seq[PTrigger], body: PExp)(val pos: (Position, Position)) extends PQuantifier {
   override def reformatExp(ctx: ReformatterContext): Cont = show(keyword, ctx) <+> show(vars, ctx) <+>
-    show(c, ctx) <+> showSeq(triggers, ctx) <+> show(body, ctx)
+    show(c, ctx) <> nest(defaultIndent, group(line <> (showSeq(triggers, ctx) <+@> show(body, ctx))))
 }
 
 case class PForPerm(keyword: PKw.Forperm, vars: PDelimited[PLogicalVarDecl, PSym.Comma], accessRes: PGrouped[PSym.Bracket, PResourceAccess], c: PSym.ColonColon, body: PExp)(val pos: (Position, Position)) extends PQuantifier {
@@ -1229,7 +1243,7 @@ case class PLet(l: PKwOp.Let, variable: PIdnDef, eq: PSymOp.EqEq, exp: PGrouped.
   }
 
   override def reformatExp(ctx: ReformatterContext): Cont = show(l, ctx) <+> show(variable, ctx) <+>
-    show(eq, ctx) <+> show(exp, ctx) <+> show(in, ctx) <+> show(nestedScope, ctx)
+    show(eq, ctx) <+> nest(defaultIndent, show(exp, ctx) <+> show(in, ctx) <@> show(nestedScope, ctx))
 }
 
 case class PLetNestedScope(body: PExp)(val pos: (Position, Position)) extends PTypedVarDecl with PLocalDeclaration with PScopeUniqueDeclaration {
@@ -1642,7 +1656,7 @@ case class PInhale(inhale: PKw.Inhale, e: PExp)(val pos: (Position, Position)) e
 
 /** Can also represent a method call or statement macro with no `:=` when `targets` is empty. */
 case class PAssign(targets: PDelimited[PExp with PAssignTarget, PSym.Comma], op: Option[PSymOp.Assign], rhs: PExp)(val pos: (Position, Position)) extends PStmt {
-  override def reformat(ctx: ReformatterContext): Cont = show(targets, ctx) <+@> showOption(op, ctx) <+@> show(rhs, ctx)
+  override def reformat(ctx: ReformatterContext): Cont = show(targets, ctx) <+@> showOption(op, ctx) <+@> nest(defaultIndent, show(rhs, ctx))
 }
 
 sealed trait PIfContinuation extends PStmt
@@ -1652,7 +1666,6 @@ case class PIf(keyword: PReserved[PKeywordIf], cond: PGrouped.Paren[PExp], thn: 
 }
 case class PElse(k: PKw.Else, els: PSeqn)(val pos: (Position, Position)) extends PStmt with PIfContinuation {
   override def reformat(ctx: ReformatterContext): Cont = {
-    println("reached PElse!");
     show(k, ctx) <+> showBody(show(els, ctx), false)
   }
 }
@@ -1667,7 +1680,9 @@ case class PWhile(keyword: PKw.While, cond: PGrouped.Paren[PExp], invs: PDelimit
 case class PVars(keyword: PKw.Var, vars: PDelimited[PLocalVarDecl, PSym.Comma], init: Option[(PSymOp.Assign, PExp)])(val pos: (Position, Position)) extends PStmt {
   def assign: Option[PAssign] = init map (i => PAssign(vars.update(vars.toSeq.map(_.toIdnUse)), Some(i._1), i._2)(pos))
 
-  override def reformat(ctx: ReformatterContext): Cont = show(keyword, ctx) <+> show(vars, ctx) <> init.map(s => nil <+> show(s._1, ctx) <+> show(s._2, ctx)).getOrElse(nil)
+  override def reformat(ctx: ReformatterContext): Cont =
+    show(keyword, ctx) <+> show(vars, ctx) <>
+      init.map(s => nest(defaultIndent, group(nil <+> show(s._1, ctx) <@> show(s._2, ctx)))).getOrElse(nil)
 }
 
 case class PLabel(label: PKw.Label, idndef: PIdnDef, invs: PDelimited[PSpecification[PKw.InvSpec], Option[PSym.Semi]])(val pos: (Position, Position)) extends PStmt with PMemberDeclaration with PBackwardDeclaration {

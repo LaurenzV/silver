@@ -44,7 +44,8 @@ case class PDecreasesTuple(tuple: PDelimited[PExp, PSym.Comma], condition: Optio
     DecreasesTuple(tuple.toSeq map t.exp, condition map (_._2) map t.exp)(t.liftPos(this))
   }
 
-  override def reformatExp(ctx: ReformatterContext): Cont = show(tuple, ctx) <> showOption(condition, ctx)
+  override def reformatExp(ctx: ReformatterContext): Cont =
+    show(tuple, ctx) <> condition.map((e) => space <> show(e._1, ctx) <+> show(e._2, ctx)).getOrElse(nil)
 }
 
 case class PDecreasesWildcard(wildcard: PReserved[PWildcardSym.type], condition: Option[(PReserved[PIfKeyword.type], PExp)] = None)(val pos: (Position, Position)) extends PDecreasesClause {
@@ -59,7 +60,8 @@ case class PDecreasesWildcard(wildcard: PReserved[PWildcardSym.type], condition:
     DecreasesWildcard(condition map (_._2) map t.exp)(t.liftPos(this))
   }
 
-  override def reformatExp(ctx: ReformatterContext): Cont = show(wildcard, ctx) <+> showOption(condition, ctx)
+  override def reformatExp(ctx: ReformatterContext): Cont = show(wildcard, ctx) <+>
+    condition.map((e) => show(e._1, ctx) <+> show(e._2, ctx)).getOrElse(nil)
 }
 
 case class PDecreasesStar(star: PSym.Star)(val pos: (Position, Position)) extends PDecreasesClause {
